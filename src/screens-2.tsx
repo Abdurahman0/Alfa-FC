@@ -6,7 +6,7 @@ import {
   apiGetStudents, apiGetStudentFullInfo, apiGetStudentTransactions, apiGetStudentGateLogs,
   apiGetGroups, apiCreateStudent, apiDownloadStudentsComprehensiveExport,
   apiGetStudentAttendanceReport, apiUpdateStudent,
-  apiDeleteStudent, apiDeleteStudentsBulk,
+  apiDeleteStudent, apiDeleteStudentsBulk, apiHardDeleteStudent,
   apiUploadStudentPhoto, apiUploadStudentPassport, apiUploadStudentExtraFile,
   apiContractPdfUrl, apiGetContractPdf, apiDownloadStudentFile,
 } from './api';
@@ -27,6 +27,7 @@ function calcAge(dateOfBirth) {
 }
 
 function fullName(s) { return `${s.first_name} ${s.last_name}`; }
+function normalizeStatus(status) { return String(status || '').toLowerCase(); }
 
 export function StudentsList({ onOpen, onNew, onToast }) {
   const I = Icon;
@@ -44,7 +45,7 @@ export function StudentsList({ onOpen, onNew, onToast }) {
   const [bulkDeleting, setBulkDeleting] = React.useState(false);
   const [openMenuStudentId, setOpenMenuStudentId] = React.useState(null);
   const [menuPos, setMenuPos] = React.useState({ x: 0, y: 0 });
-  const PAGE_SIZE = 30;
+  const PAGE_SIZE = 10;
 
   async function loadStudents(overrides = {}) {
     setLoading(true);
@@ -86,6 +87,7 @@ export function StudentsList({ onOpen, onNew, onToast }) {
     return m;
   }, [groups]);
 
+  const isDeletedStatusFilter = normalizeStatus(status) === 'deleted';
   const allSelected = students.length > 0 && students.every(s => selected.includes(s.id));
 
   async function handleDeleteStudent(id) {
@@ -143,7 +145,7 @@ export function StudentsList({ onOpen, onNew, onToast }) {
           <div className="page-sub">{t('students_sub')} {totalCount} {t('students_count')}</div>
         </div>
         <div className="page-actions">
-          {selected.length > 0 && (
+          {selected.length > 0 && !isDeletedStatusFilter && (
             <button className="btn danger" onClick={handleBulkDelete} disabled={bulkDeleting}>
               <I.Trash2 size={14}/> {bulkDeleting ? t('deleting') : `${selected.length} ${t('delete')}`}
             </button>
@@ -167,6 +169,7 @@ export function StudentsList({ onOpen, onNew, onToast }) {
               { value: 'active', label: t('status_active') },
               { value: 'inactive', label: t('status_inactive') },
               { value: 'archived', label: t('status_archived') },
+              { value: 'DELETED', label: t('status_deleted') },
             ]}
           />
           <SearchableGroupSelect value={groupId} onChange={v => { setGroupId(v === 'all' ? '' : v); setPage(1); }} groups={groups} placeholder={t('students_all_groups')} />
@@ -217,9 +220,10 @@ export function StudentsList({ onOpen, onNew, onToast }) {
                     <td style={{ fontVariantNumeric: 'tabular-nums', color: 'var(--text-2)' }}>{s.date_of_birth}</td>
                     <td style={{ fontVariantNumeric: 'tabular-nums', color: 'var(--text-2)' }}>{s.phone || '—'}</td>
                     <td>
-                      {s.status === 'active' && <span className="chip success"><span className="chip-dot"></span>{t('status_active')}</span>}
-                      {s.status === 'inactive' && <span className="chip warning"><span className="chip-dot"></span>{t('status_inactive')}</span>}
-                      {s.status === 'archived' && <span className="chip"><span className="chip-dot"></span>{t('status_archived')}</span>}
+                      {normalizeStatus(s.status) === 'active' && <span className="chip success"><span className="chip-dot"></span>{t('status_active')}</span>}
+                      {normalizeStatus(s.status) === 'inactive' && <span className="chip warning"><span className="chip-dot"></span>{t('status_inactive')}</span>}
+                      {normalizeStatus(s.status) === 'archived' && <span className="chip"><span className="chip-dot"></span>{t('status_archived')}</span>}
+                      {normalizeStatus(s.status) === 'deleted' && <span className="chip danger"><span className="chip-dot"></span>{t('status_deleted')}</span>}
                     </td>
                     <td onClick={e => e.stopPropagation()} style={{ position: 'relative' }}>
                       <button className="icon-btn" style={{ width: 32, height: 32, border: 'none', background: 'transparent' }} onClick={(e) => {
@@ -287,6 +291,8 @@ export function StudentProfile({ studentId, onBack }) {
   const [editLoading, setEditLoading] = React.useState(false);
   const [editError, setEditError] = React.useState('');
   const [uploadingFile, setUploadingFile] = React.useState(null);
+  const [showHardDeleteModal, setShowHardDeleteModal] = React.useState(false);
+  const [hardDeleting, setHardDeleting] = React.useState(false);
 
   React.useEffect(() => {
     if (!studentId) return;
@@ -330,6 +336,7 @@ export function StudentProfile({ studentId, onBack }) {
   const attendances = info.attendances || [];
   const name = fullName(s);
   const age = calcAge(s.date_of_birth);
+  const studentStatus = normalizeStatus(s.status);
 
   const presentCount = attendances.filter(a => a.status === 'present').length;
   const absentCount = attendances.filter(a => a.status === 'absent').length;
@@ -358,7 +365,10 @@ export function StudentProfile({ studentId, onBack }) {
               </div>
               <div style={{ minWidth: 0 }}>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
-                  {s.status === 'active' && <span className="chip success" style={{ background: 'rgba(30, 138, 92, 0.15)', color: 'white', borderColor: 'rgba(255,255,255,0.12)' }}><span className="chip-dot" style={{ background: '#7EE2B8' }}></span>{t('profile_active_student')}</span>}
+                  {studentStatus === 'active' && <span className="chip success" style={{ background: 'rgba(30, 138, 92, 0.15)', color: 'white', borderColor: 'rgba(255,255,255,0.12)' }}><span className="chip-dot" style={{ background: '#7EE2B8' }}></span>{t('profile_active_student')}</span>}
+                  {studentStatus === 'inactive' && <span className="chip warning" style={{ background: 'rgba(245,185,33,0.15)', color: 'white', borderColor: 'rgba(255,255,255,0.12)' }}><span className="chip-dot" style={{ background: '#F5B921' }}></span>{t('status_inactive')}</span>}
+                  {studentStatus === 'archived' && <span className="chip" style={{ background: 'rgba(255,255,255,0.12)', color: 'white', borderColor: 'rgba(255,255,255,0.12)' }}><span className="chip-dot"></span>{t('status_archived')}</span>}
+                  {studentStatus === 'deleted' && <span className="chip danger" style={{ background: 'rgba(200,32,44,0.22)', color: 'white', borderColor: 'rgba(255,255,255,0.16)' }}><span className="chip-dot" style={{ background: '#FF8D95' }}></span>{t('status_deleted')}</span>}
                   {attendances.length > 0 && (
                     <span className="chip navy" style={{ background: 'rgba(255,255,255,0.12)', color: 'white', borderColor: 'rgba(255,255,255,0.12)' }}>{t('profile_attendance_label')} {Math.round((presentCount / attendances.length) * 100)}%</span>
                   )}
@@ -375,6 +385,7 @@ export function StudentProfile({ studentId, onBack }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
               <button className="btn sm" onClick={() => setShowEditModal(true)}><I.Edit size={13}/> {t('edit')}</button>
               {contract && <button className="btn sm" onClick={() => setTab('contract')}><I.FileText size={13}/> {t('profile_contract')}</button>}
+              {studentStatus === 'deleted' && <button className="btn sm danger" onClick={() => setShowHardDeleteModal(true)}><I.Trash2 size={13}/> {t('student_full_delete')}</button>}
             </div>
           </div>
         </div>
@@ -675,6 +686,42 @@ export function StudentProfile({ studentId, onBack }) {
         )}
       </div>
 
+      {showHardDeleteModal && info && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000, padding: 16
+        }} onClick={() => !hardDeleting && setShowHardDeleteModal(false)}>
+          <div style={{
+            background: 'var(--bg)', borderRadius: 12, boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+            maxWidth: 460, width: '100%', padding: 24
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(200,32,44,0.12)', color: 'var(--brand-red)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><I.Trash2 size={20}/></div>
+              <div style={{ fontSize: 16, fontWeight: 700 }}>{t('student_full_delete_confirm_title')}</div>
+            </div>
+            <div style={{ color: 'var(--text-2)', fontSize: 13.5, lineHeight: 1.55, marginBottom: 20 }}>
+              {t('student_full_delete_confirm_desc')}
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button className="btn ghost" onClick={() => setShowHardDeleteModal(false)} disabled={hardDeleting}>{t('cancel')}</button>
+              <button className="btn danger" onClick={async () => {
+                setHardDeleting(true);
+                try {
+                  await apiHardDeleteStudent(studentId);
+                  setShowHardDeleteModal(false);
+                  onBack?.();
+                } catch (e) {
+                  alert(e.message);
+                } finally {
+                  setHardDeleting(false);
+                }
+              }} disabled={hardDeleting}>{hardDeleting ? t('deleting') : t('student_full_delete')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showEditModal && info && (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
@@ -796,11 +843,11 @@ export function StudentNew({ onBack, onCreated, onViewContract }) {
 
   async function handleSubmit() {
     setError('');
-    if (!form.first_name || !form.last_name || !form.date_of_birth || !form.pnfl) {
-      setError(t('required_student_fields'));
+    if (!form.first_name || !form.last_name || !form.date_of_birth || !form.height || !form.weight || !form.pnfl) {
+      setError(t('required_student_create_fields'));
       return;
     }
-    if (!form.customer_full_name || !form.monthly_fee_amount) {
+    if (!form.customer_full_name || !form.customer_passport_number || !form.customer_address || !form.monthly_fee_amount) {
       setError(t('required_contract_fields'));
       return;
     }
@@ -808,7 +855,7 @@ export function StudentNew({ onBack, onCreated, onViewContract }) {
     try {
       const fd = new FormData();
       const studentFields = ['first_name', 'last_name', 'date_of_birth', 'height', 'weight', 'pnfl', 'phone', 'ampula', 'millati', 'address', 'group_id'];
-      studentFields.forEach(k => { if (form[k]) fd.append(k, form[k]); });
+      studentFields.forEach(k => { if (form[k]) fd.append(k, k === 'pnfl' ? String(form[k]) : form[k]); });
       const contractFields = ['customer_full_name', 'customer_passport_number', 'customer_address', 'monthly_fee_amount', 'uniform_fee_amount', 'contract_start_date', 'contract_end_date'];
       contractFields.forEach(k => { if (form[k]) fd.append(k, form[k]); });
       if (files.photo) fd.append('photo', files.photo);
@@ -870,7 +917,7 @@ export function StudentNew({ onBack, onCreated, onViewContract }) {
               <div className="field"><label>{t('field_birth_date')} <span className="req">*</span></label><input type="date" value={form.date_of_birth} onChange={e => setF('date_of_birth', e.target.value)}/></div>
               <div className="field"><label>{t('field_height')} <span className="req">*</span></label><input type="number" value={form.height} onChange={e => setF('height', e.target.value)} placeholder="140"/></div>
               <div className="field"><label>{t('field_weight')} <span className="req">*</span></label><input type="number" value={form.weight} onChange={e => setF('weight', e.target.value)} placeholder="35"/></div>
-              <div className="field"><label>{t('field_pnfl')} <span className="req">*</span></label><input maxLength={14} value={form.pnfl} onChange={e => setF('pnfl', e.target.value)} placeholder="14 ta raqam"/></div>
+              <div className="field"><label>{t('field_pnfl')} <span className="req">*</span></label><input value={form.pnfl} onChange={e => setF('pnfl', e.target.value)} placeholder={t('pnfl_placeholder')}/></div>
               <div className="field"><label>{t('field_phone')}</label><input value={form.phone} onChange={e => setF('phone', e.target.value)} placeholder="+998 90 123 45 67"/></div>
               <div className="field"><label>{t('field_blood')}</label>
                 <SearchableSelect
@@ -889,8 +936,8 @@ export function StudentNew({ onBack, onCreated, onViewContract }) {
           {step === 2 && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
               <div className="field" style={{ gridColumn: 'span 2' }}><label>{t('field_customer_name')} <span className="req">*</span></label><input value={form.customer_full_name} onChange={e => setF('customer_full_name', e.target.value)} placeholder="Karimov Ravshan Akmalovich"/></div>
-              <div className="field"><label>{t('field_passport_num')}</label><input value={form.customer_passport_number} onChange={e => setF('customer_passport_number', e.target.value)} placeholder="AB 1234567"/></div>
-              <div className="field"><label>{t('field_address')}</label><input value={form.customer_address} onChange={e => setF('customer_address', e.target.value)} placeholder="Toshkent sh., Chilonzor t."/></div>
+              <div className="field"><label>{t('field_passport_num')} <span className="req">*</span></label><input value={form.customer_passport_number} onChange={e => setF('customer_passport_number', e.target.value)} placeholder="AB 1234567"/></div>
+              <div className="field"><label>{t('field_address')} <span className="req">*</span></label><input value={form.customer_address} onChange={e => setF('customer_address', e.target.value)} placeholder="Toshkent sh., Chilonzor t."/></div>
               <div className="field"><label>{t('field_monthly_fee')} <span className="req">*</span></label><input type="number" value={form.monthly_fee_amount} onChange={e => setF('monthly_fee_amount', e.target.value)} placeholder="500000"/></div>
               <div className="field"><label>{t('field_uniform_fee')}</label><input type="number" value={form.uniform_fee_amount} onChange={e => setF('uniform_fee_amount', e.target.value)} placeholder="0"/></div>
               <div className="field"><label>{t('field_contract_start')}</label><input type="date" value={form.contract_start_date} onChange={e => setF('contract_start_date', e.target.value)}/></div>
