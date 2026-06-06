@@ -22,8 +22,8 @@ function normalizeContractMonthlyFeePayload(data = {}) {
 
 function normalizeContractDatesPayload(data = {}) {
   return {
-    start_date: data.start_date ?? data.contract_start_date,
-    end_date: data.end_date ?? data.contract_end_date,
+    contract_start_date: data.contract_start_date ?? data.start_date,
+    contract_end_date: data.contract_end_date ?? data.end_date,
   };
 }
 
@@ -511,11 +511,11 @@ export async function apiPatchContractStatus(id, data) {
 }
 
 export async function apiPatchContractMonthlyFee(id, data) {
-  return apiFetch(`/contracts/${id}/monthly-fee`, { method: 'PATCH', body: JSON.stringify(normalizeContractMonthlyFeePayload(data)) });
+  return apiUpdateContract(id, normalizeContractMonthlyFeePayload(data));
 }
 
 export async function apiPatchContractDates(id, data) {
-  return apiFetch(`/contracts/${id}/dates`, { method: 'PATCH', body: JSON.stringify(normalizeContractDatesPayload(data)) });
+  return apiUpdateContract(id, normalizeContractDatesPayload(data));
 }
 
 export async function apiRegenerateContractPdf(id) {

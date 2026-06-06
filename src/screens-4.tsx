@@ -121,7 +121,7 @@ export function ContractsScreen({ onOpenContract, onNavigateToStudent, onToast }
   const [terminateReason, setTerminateReason] = React.useState('');
   const [terminateAt, setTerminateAt] = React.useState('');
   const [terminateModal, setTerminateModal] = React.useState(false);
-  const PAGE_SIZE = 50;
+  const PAGE_SIZE = 10;
 
   async function loadActive(overrides = {}) {
     setLoading(true);
@@ -143,13 +143,18 @@ export function ContractsScreen({ onOpenContract, onNavigateToStudent, onToast }
     }
   }
 
-  async function loadTerminated() {
+  async function loadTerminated(overrides = {}) {
     setLoading(true);
     try {
-      const res = await apiGetTerminatedContracts({ page_size: 200 });
+      const res = await apiGetTerminatedContracts({ page: overrides.page ?? page, page_size: PAGE_SIZE });
       setTerminated(res?.data || []);
-    } catch { setTerminated([]); }
-    finally { setLoading(false); }
+      setTotalPages(res?.meta?.total_pages || 1);
+      setTotalCount(res?.meta?.total || 0);
+    } catch {
+      setTerminated([]);
+      setTotalPages(1);
+      setTotalCount(0);
+    } finally { setLoading(false); }
   }
 
   React.useEffect(() => {
@@ -157,9 +162,9 @@ export function ContractsScreen({ onOpenContract, onNavigateToStudent, onToast }
   }, []);
 
   React.useEffect(() => {
-    if (tab === 'terminated') { loadTerminated(); return; }
+    setPage(1);
+    if (tab === 'terminated') { loadTerminated({ page: 1 }); return; }
     const timer = setTimeout(() => {
-      setPage(1);
       loadActive({ page: 1, query, status: statusFilter });
     }, query ? 400 : 0);
     return () => clearTimeout(timer);
@@ -219,7 +224,7 @@ export function ContractsScreen({ onOpenContract, onNavigateToStudent, onToast }
             key={tb.key}
             className={`btn${tab === tb.key ? ' primary' : ' ghost'}`}
             style={{ fontSize: 13 }}
-            onClick={() => setTab(tb.key)}
+            onClick={() => { setPage(1); setTab(tb.key); }}
           >
             {t(tb.labelKey)}
           </button>
@@ -270,12 +275,12 @@ export function ContractsScreen({ onOpenContract, onNavigateToStudent, onToast }
                   <td style={{ fontWeight: 700 }}>{c.contract_number}</td>
                   <td onClick={c.student_id ? e => { e.stopPropagation(); onNavigateToStudent?.(c.student_id); } : undefined}
                     style={{ color: 'var(--text-2)', ...(c.student_id && onNavigateToStudent ? { cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'var(--muted)' } : {}) }}>
-                    {c.custom_fields?.customer?.full_name || '—'}
+                    {c.customer_full_name ?? c.custom_fields?.customer?.full_name ?? '—'}
                   </td>
                   <td style={{ fontVariantNumeric: 'tabular-nums', fontSize: 12.5 }}>
-                    {c.start_date || '—'} <span style={{ color: 'var(--muted)' }}>→</span> {c.end_date || '—'}
+                    {c.contract_start_date ?? c.start_date ?? '—'} <span style={{ color: 'var(--muted)' }}>→</span> {c.contract_end_date ?? c.end_date ?? '—'}
                   </td>
-                  <td style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{fmt.format(c.monthly_fee || 0)} so'm</td>
+                  <td style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{fmt.format(c.monthly_fee_amount ?? c.monthly_fee ?? 0)} so'm</td>
                   <td>{statusChip(c.status, t)}</td>
                   <td onClick={e => e.stopPropagation()}>
                     {c.status === 'ACTIVE' && (
@@ -290,11 +295,21 @@ export function ContractsScreen({ onOpenContract, onNavigateToStudent, onToast }
           </table>
         )}
 
-        {tab === 'active' && totalPages > 1 && (
+        {totalPages > 1 && (
           <div style={{ display: 'flex', justifyContent: 'center', gap: 6, padding: '10px 0' }}>
-            <button className="btn ghost sm" disabled={page <= 1} onClick={() => { const p = page - 1; setPage(p); loadActive({ page: p }); }}>‹ {t('prev')}</button>
+            <button className="btn ghost sm" disabled={page <= 1} onClick={() => {
+              const p = page - 1;
+              setPage(p);
+              if (tab === 'terminated') loadTerminated({ page: p });
+              else loadActive({ page: p });
+            }}>‹ {t('prev')}</button>
             <span style={{ lineHeight: '30px', fontSize: 13, color: 'var(--muted)' }}>{page} / {totalPages}</span>
-            <button className="btn ghost sm" disabled={page >= totalPages} onClick={() => { const p = page + 1; setPage(p); loadActive({ page: p }); }}>{t('next')} ›</button>
+            <button className="btn ghost sm" disabled={page >= totalPages} onClick={() => {
+              const p = page + 1;
+              setPage(p);
+              if (tab === 'terminated') loadTerminated({ page: p });
+              else loadActive({ page: p });
+            }}>{t('next')} ›</button>
           </div>
         )}
       </div>
@@ -442,14 +457,10 @@ export function ContractView({ contractId, onBack, onToast, onNavigateToStudent 
     setSaving(true);
     try {
       const body = {
-        monthly_fee: Number(editForm.monthly_fee) || undefined,
-        custom_fields: {
-          customer: {
-            full_name: editForm.customer_full_name || undefined,
-            passport_number: editForm.customer_passport_number || undefined,
-            address: editForm.customer_address || undefined,
-          },
-        },
+        monthly_fee_amount: Number(editForm.monthly_fee),
+        customer_full_name: editForm.customer_full_name,
+        customer_passport_number: editForm.customer_passport_number,
+        customer_address: editForm.customer_address,
       };
       await apiUpdateContract(contractId, body);
       setEditModal(false);
@@ -496,17 +507,20 @@ export function ContractView({ contractId, onBack, onToast, onNavigateToStudent 
           )}
           <button className="btn ghost" onClick={() => {
             setEditForm({
-              monthly_fee: String(contract.monthly_fee || ''),
-              customer_full_name: cust.full_name || '',
-              customer_passport_number: cust.passport_number || '',
-              customer_address: cust.address || '',
+              monthly_fee: String(contract.monthly_fee_amount ?? contract.monthly_fee ?? ''),
+              customer_full_name: contract.customer_full_name ?? cust.full_name ?? '',
+              customer_passport_number: contract.customer_passport_number ?? cust.passport_number ?? '',
+              customer_address: contract.customer_address ?? cust.address ?? '',
             });
             setEditModal(true);
           }}>
             <I.Edit size={15} /> {t('edit')}
           </button>
           <button className="btn ghost" onClick={() => {
-            setDatesForm({ start_date: contract.start_date || '', end_date: contract.end_date || '' });
+            setDatesForm({
+              start_date: contract.contract_start_date ?? contract.start_date ?? '',
+              end_date: contract.contract_end_date ?? contract.end_date ?? '',
+            });
             setDatesModal(true);
           }}>
             <I.Calendar size={15} /> {t('contracts_change_dates_btn')}

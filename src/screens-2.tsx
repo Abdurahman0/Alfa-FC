@@ -45,7 +45,7 @@ export function StudentsList({ onOpen, onNew, onToast }) {
   const [bulkDeleting, setBulkDeleting] = React.useState(false);
   const [openMenuStudentId, setOpenMenuStudentId] = React.useState(null);
   const [menuPos, setMenuPos] = React.useState({ x: 0, y: 0 });
-  const PAGE_SIZE = 30;
+  const PAGE_SIZE = 10;
 
   async function loadStudents(overrides = {}) {
     setLoading(true);
