@@ -186,23 +186,26 @@ export function Topbar({ crumbs, role, onRoleSwitch, canSwitchRole, theme, onThe
             {!searchLoading && searchResults.length === 0 && (
               <div style={{ padding: '12px 14px', fontSize: 13, color: 'var(--muted)', textAlign: 'center' }}>{t('topbar_no_results')}</div>
             )}
-            {searchResults.map(s => (
-              <div key={s.id}
-                onClick={() => { onNavigate?.('student', s.id); setSearchQ(''); setSearchOpen(false); }}
-                style={{ padding: '9px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, borderBottom: '1px solid var(--border)' }}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--selected)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-              >
-                <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#0F1F4D', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
-                  {(s.first_name || '?')[0]}{(s.last_name || '?')[0]}
+            {searchResults.map(s => {
+              const studentId = s.id ?? s.student_id;
+              return (
+                <div key={studentId}
+                  onClick={() => { if (studentId) onNavigate?.('student', studentId); setSearchQ(''); setSearchOpen(false); }}
+                  style={{ padding: '9px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, borderBottom: '1px solid var(--border)' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--selected)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#0F1F4D', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
+                    {(s.first_name || '?')[0]}{(s.last_name || '?')[0]}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600 }}>{s.first_name} {s.last_name}</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--muted)' }}>{s.phone || s.pnfl || `#${String(studentId).padStart(4, '0')}`}</div>
+                  </div>
+                  <I.ChevronRight size={13} color="var(--muted)"/>
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600 }}>{s.first_name} {s.last_name}</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--muted)' }}>{s.phone || s.pnfl || `#${String(s.id).padStart(4, '0')}`}</div>
-                </div>
-                <I.ChevronRight size={13} color="var(--muted)"/>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

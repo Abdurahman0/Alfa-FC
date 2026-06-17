@@ -153,7 +153,7 @@ export default function App() {
           onSignOut={handleSignOut}
           user={currentUser}
           onNavigate={(type, id) => {
-            if (type === 'student') { setStudentId(id); navigate('students-profile'); }
+            if (type === 'student') { setStudentId(id); setRoute('students-profile'); }
           }}
         />
         <div className="content">
