@@ -295,7 +295,11 @@ export function StudentProfile({ studentId, onBack }) {
   const [hardDeleting, setHardDeleting] = React.useState(false);
 
   React.useEffect(() => {
-    if (!studentId) return;
+    if (!studentId) {
+      setInfo(null);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     Promise.all([
       apiGetStudentFullInfo(studentId),
