@@ -9,6 +9,7 @@ import {
   apiDeleteStudent, apiDeleteStudentsBulk, apiHardDeleteStudent,
   apiUploadStudentPhoto, apiUploadStudentPassport, apiUploadStudentExtraFile,
   apiContractPdfUrl, apiGetContractPdf, apiDownloadStudentFile,
+  apiChangeStudentGroup,
 } from './api';
 import { SearchableGroupSelect, SearchableSelect } from './components';
 import { useT } from './lang';
@@ -284,6 +285,7 @@ export function StudentProfile({ studentId, onBack }) {
   const [attendanceReport, setAttendanceReport] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const [tab, setTab] = React.useState('overview');
+  const [groups, setGroups] = React.useState([]);
   const [showEditModal, setShowEditModal] = React.useState(false);
   const [editForm, setEditForm] = React.useState({});
   const [pdfDownloading, setPdfDownloading] = React.useState(false);
@@ -293,6 +295,10 @@ export function StudentProfile({ studentId, onBack }) {
   const [uploadingFile, setUploadingFile] = React.useState(null);
   const [showHardDeleteModal, setShowHardDeleteModal] = React.useState(false);
   const [hardDeleting, setHardDeleting] = React.useState(false);
+
+  React.useEffect(() => {
+    apiGetGroups({ page_size: 100 }).then(res => setGroups(res?.data || [])).catch(() => {});
+  }, []);
 
   React.useEffect(() => {
     if (!studentId) {
@@ -324,7 +330,8 @@ export function StudentProfile({ studentId, onBack }) {
           ampula: s.ampula || 'O(+)',
           millati: s.millati || "O'zbek",
           address: s.address || '',
-          group_id: infoRes.data.group?.id || '',
+          group_id: infoRes.data.group?.id ? String(infoRes.data.group.id) : '',
+          status: s.status || 'active',
         });
       }
     }).catch(() => {}).finally(() => setLoading(false));
@@ -769,6 +776,31 @@ export function StudentProfile({ studentId, onBack }) {
                   style={{ width: '100%' }}
                 />
               </div>
+              <div style={{ paddingBottom: 8 }}>
+                <label style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6, display: 'block' }}>{t('field_group')}</label>
+                <SearchableGroupSelect
+                  value={editForm.group_id || ''}
+                  onChange={v => setEditForm(p => ({ ...p, group_id: v }))}
+                  groups={groups}
+                  placeholder={t('students_all_groups')}
+                  style={{ width: '100%' }}
+                  direction="up"
+                />
+              </div>
+              <div style={{ paddingBottom: 8 }}>
+                <label style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6, display: 'block' }}>{t('students_all_statuses')}</label>
+                <SearchableSelect
+                  value={editForm.status || 'active'}
+                  onChange={v => setEditForm(p => ({ ...p, status: v }))}
+                  options={[
+                    { value: 'active', label: t('status_active') },
+                    { value: 'inactive', label: t('status_inactive') },
+                    { value: 'archived', label: t('status_archived') },
+                  ]}
+                  style={{ width: '100%' }}
+                  direction="up"
+                />
+              </div>
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button className="btn ghost" onClick={() => setShowEditModal(false)} disabled={editLoading}>{t('cancel')}</button>
@@ -781,10 +813,13 @@ export function StudentProfile({ studentId, onBack }) {
                 setEditLoading(true);
                 try {
                   const fd = new FormData();
-                  ['first_name', 'last_name', 'date_of_birth', 'height', 'weight', 'pnfl', 'phone', 'ampula', 'millati', 'address'].forEach(k => {
+                  ['first_name', 'last_name', 'date_of_birth', 'height', 'weight', 'pnfl', 'phone', 'ampula', 'millati', 'address', 'status'].forEach(k => {
                     if (editForm[k]) fd.append(k, editForm[k]);
                   });
                   await apiUpdateStudent(studentId, fd);
+                  if (editForm.group_id && String(editForm.group_id) !== String(info?.group?.id || '')) {
+                    await apiChangeStudentGroup(studentId, editForm.group_id);
+                  }
                   setShowEditModal(false);
                   setLoading(true);
                   const infoRes = await apiGetStudentFullInfo(studentId);
@@ -800,6 +835,8 @@ export function StudentProfile({ studentId, onBack }) {
                     ampula: infoRes.data.student.ampula,
                     millati: infoRes.data.student.millati,
                     address: infoRes.data.student.address,
+                    group_id: infoRes.data.group?.id ? String(infoRes.data.group.id) : '',
+                    status: infoRes.data.student.status || 'active',
                   });
                   setLoading(false);
                 } catch (e) {

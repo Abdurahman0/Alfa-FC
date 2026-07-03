@@ -3,7 +3,7 @@ import React from 'react';
 import { Icon } from './icons';
 import { useT } from './lang';
 
-export function SearchableSelect({ value, onChange, options, placeholder = 'Tanlang', style }) {
+export function SearchableSelect({ value, onChange, options, placeholder = 'Tanlang', style, direction = 'down' }) {
   const I = Icon;
   const { t } = useT();
   const [open, setOpen] = React.useState(false);
@@ -32,7 +32,9 @@ export function SearchableSelect({ value, onChange, options, placeholder = 'Tanl
       </button>
       {open && (
         <div style={{
-          position: 'absolute', top: 'calc(100% + 4px)', left: 0, minWidth: '100%',
+          position: 'absolute',
+          ...(direction === 'up' ? { bottom: 'calc(100% + 4px)' } : { top: 'calc(100% + 4px)' }),
+          left: 0, minWidth: '100%',
           width: 'max-content', maxWidth: 300, background: 'var(--surface)',
           border: '1px solid var(--border)', borderRadius: 8,
           boxShadow: '0 8px 24px rgba(0,0,0,0.14)', zIndex: 300,
@@ -68,7 +70,7 @@ export function SearchableSelect({ value, onChange, options, placeholder = 'Tanl
   );
 }
 
-export function SearchableGroupSelect({ value, onChange, groups, placeholder }) {
+export function SearchableGroupSelect({ value, onChange, groups, placeholder, style, direction = 'down' }) {
   const I = Icon;
   const { t } = useT();
   const defaultPlaceholder = t('students_all_groups');
@@ -84,13 +86,13 @@ export function SearchableGroupSelect({ value, onChange, groups, placeholder }) 
     return () => document.removeEventListener('mousedown', handler);
   }, []);
   return (
-    <div ref={ref} style={{ position: 'relative' }}>
-      <button type="button" onClick={() => setOpen(o => !o)} style={{ height: 38, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)', color: 'var(--text)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', minWidth: 180, justifyContent: 'space-between', whiteSpace: 'nowrap' }}>
+    <div ref={ref} style={{ position: 'relative', ...style }}>
+      <button type="button" onClick={() => setOpen(o => !o)} style={{ height: 38, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)', color: 'var(--text)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', minWidth: 180, width: '100%', justifyContent: 'space-between', whiteSpace: 'nowrap' }}>
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{selectedGroup ? selectedGroup.name : ph}</span>
         <I.ChevronDown size={14} style={{ flexShrink: 0 }} />
       </button>
       {open && (
-        <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, minWidth: '100%', width: 'max-content', maxWidth: 300, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.14)', zIndex: 300 }}>
+        <div style={{ position: 'absolute', ...(direction === 'up' ? { bottom: 'calc(100% + 4px)' } : { top: 'calc(100% + 4px)' }), left: 0, minWidth: '100%', width: 'max-content', maxWidth: 300, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.14)', zIndex: 300 }}>
           <div style={{ padding: '6px 8px', borderBottom: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--surface-2)', borderRadius: 6, padding: '4px 8px' }}>
               <I.Search size={13} color="var(--muted)" />
