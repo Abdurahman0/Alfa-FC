@@ -63,12 +63,12 @@ function getInitials(name) {
     .join('') || 'AY';
 }
 
-export function Sidebar({ active, onNav, role, collapsed, onToggle, user }) {
+export function Sidebar({ active, onNav, role, collapsed, onToggle, user, mobileOpen }) {
   const I = Icon;
   const { t } = useT();
   const fullName = user?.full_name || user?.name || user?.email || 'Alpha User';
   return (
-    <aside className="sidebar">
+    <aside className={'sidebar' + (mobileOpen ? ' mobile-open' : '')}>
       <div className="sidebar-header">
         {!collapsed ? <AlphaWordmark height={30}/> : <AlphaShield size={30}/>}
         <button className="icon-btn" style={{ marginLeft: 'auto', width: 32, height: 32, border: 'none', background: 'transparent' }}
@@ -126,7 +126,7 @@ export function Sidebar({ active, onNav, role, collapsed, onToggle, user }) {
   );
 }
 
-export function Topbar({ crumbs, role, onRoleSwitch, canSwitchRole, theme, onTheme, onSignOut, user, onNavigate }) {
+export function Topbar({ crumbs, role, onRoleSwitch, canSwitchRole, theme, onTheme, onSignOut, user, onNavigate, onMenu }) {
   const I = Icon;
   const { t, lang, setLang } = useT();
   const [open, setOpen] = React.useState(false);
@@ -160,6 +160,9 @@ export function Topbar({ crumbs, role, onRoleSwitch, canSwitchRole, theme, onThe
 
   return (
     <div className="topbar">
+      <button className="icon-btn mobile-menu-button" onClick={onMenu} aria-label="Open navigation">
+        <I.Menu size={18}/>
+      </button>
       <div className="crumbs">
         {crumbs.map((c, i) => (
           <React.Fragment key={i}>
@@ -209,8 +212,9 @@ export function Topbar({ crumbs, role, onRoleSwitch, canSwitchRole, theme, onThe
           </div>
         )}
       </div>
-      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div className="topbar-actions" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
         <button
+          className="language-button"
           onClick={() => setLang(lang === 'ru' ? 'uz' : 'ru')}
           style={{ height: 32, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)', color: 'var(--text)', fontSize: 12, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 4 }}
           title={lang === 'ru' ? "O'zbek tiliga o'tish" : 'Переключить на русский'}
@@ -223,11 +227,11 @@ export function Topbar({ crumbs, role, onRoleSwitch, canSwitchRole, theme, onThe
         <div style={{ position: 'relative' }}>
           <button className="user-chip" onClick={() => setOpen(!open)}>
             <div className="avatar">{initials}</div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.15 }}>
+            <div className="user-chip-details" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.15 }}>
               <span style={{ fontSize: 12.5, fontWeight: 600 }}>{fullName}</span>
               <span style={{ fontSize: 10.5, color: 'var(--muted)' }}>{role}</span>
             </div>
-            <I.ChevronDown size={14}/>
+            <span className="user-chip-chevron"><I.ChevronDown size={14}/></span>
           </button>
           {open && (
             <div style={{

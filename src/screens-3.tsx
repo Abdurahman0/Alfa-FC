@@ -757,7 +757,7 @@ export function SessionsScreen({ onMark }) {
         {groupFilter && <button className="btn sm ghost" onClick={() => setGroupFilter('')}><I.X size={13}/> {t('clear_filters')}</button>}
       </div>
       <div className="card" style={{ marginBottom: 16, padding: 14 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8 }}>
+        <div className="week-calendar" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8 }}>
           {days.map(d => {
             const isToday = d.iso === today;
             const isSelected = d.iso === selectedDate;
@@ -784,7 +784,7 @@ export function SessionsScreen({ onMark }) {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+      <div className="filter-buttons" style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
         {[['today', t('sessions_filter_today')], ['upcoming', t('sessions_filter_upcoming')], ['past', t('sessions_filter_completed')], ['all', t('sessions_filter_all')]].map(([k, l]) => (
           <button key={k} onClick={() => setFilter(k)} className={'btn sm ' + (filter === k ? '' : 'ghost')} style={{ background: filter === k ? 'var(--selected)' : 'transparent' }}>{l}</button>
         ))}
@@ -1433,7 +1433,7 @@ export function PerformanceTable() {
       {!tableQuery.isLoading && !tableQuery.isError && matches.length > 0 && (
         <>
           <div className="card" style={{ overflow: 'auto' }}>
-            <table className="table" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+            <table className="table performance-table" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
               <thead>
                 <tr>
                   <th style={{ position: 'sticky', left: 0, background: 'var(--surface-2)', zIndex: 2, minWidth: 220 }}>{t('field_student')}</th>

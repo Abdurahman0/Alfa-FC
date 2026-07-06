@@ -30,13 +30,13 @@ export function LoginScreen({ onLogin }) {
   }
 
   return (
-    <div style={{
+    <div className="login-layout" style={{
       minHeight: '100vh',
       display: 'grid',
       gridTemplateColumns: '1fr 1fr',
       background: 'var(--bg)',
     }}>
-      <div style={{
+      <div className="login-hero" style={{
         background: 'linear-gradient(160deg, #0F1F4D 0%, #1B3A6F 60%, #0F1F4D 100%)',
         color: 'white',
         padding: '48px 56px',
@@ -78,7 +78,7 @@ export function LoginScreen({ onLogin }) {
         <div style={{ fontSize: 12, opacity: 0.5, position: 'relative' }}>v2.4.1 · © 2026 Alpha Football Club</div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
+      <div className="login-form-panel" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
         <form onSubmit={submit} style={{ width: '100%', maxWidth: 380 }}>
           <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.02em', margin: '0 0 8px' }}>{t('login_title')}</h1>
           <p style={{ color: 'var(--muted)', fontSize: 14, margin: '0 0 30px' }}>{t('login_subtitle')}</p>
@@ -201,7 +201,7 @@ export function Dashboard({ role, onNav }) {
 
       <div style={{ height: 16 }}></div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
+      <div className="dashboard-panels" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
         <div className="card">
           <div className="card-header">
             <I.Calendar size={16} color="var(--muted)"/>

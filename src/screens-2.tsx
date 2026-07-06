@@ -496,7 +496,7 @@ export function StudentProfile({ studentId, onBack }) {
           <div style={{ padding: 22 }}>
             <div className="card-title" style={{ marginBottom: 14 }}>{t('profile_last_trainings')} {Math.min(attendances.length, 14)} {t('profile_last_trainings_suffix')}</div>
             {attendances.length === 0 && <div className="empty">{t('profile_no_attendance')}</div>}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(14, 1fr)', gap: 6 }}>
+            <div className="attendance-strip" style={{ display: 'grid', gridTemplateColumns: 'repeat(14, 1fr)', gap: 6 }}>
               {attendances.slice(0, 14).map((a, i) => {
                 const color = a.status === 'present' ? 'var(--success)' : a.status === 'absent' ? 'var(--brand-red)' : 'var(--brand-gold)';
                 const label = a.status === 'present' ? '✓' : a.status === 'absent' ? '✗' : 'L';

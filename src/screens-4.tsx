@@ -2722,18 +2722,20 @@ export function ReportsScreen() {
               {financeReport.breakdown && Array.isArray(financeReport.breakdown) && financeReport.breakdown.length > 0 && (
                 <div>
                   <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700, marginBottom: 10 }}>{t('rpt_by_source_title')}</div>
-                  <table className="table">
-                    <thead><tr><th>{t('rpt_source_col')}</th><th style={{ textAlign: 'right' }}>{t('rpt_sum_col')}</th><th style={{ textAlign: 'right' }}>{t('rpt_count_col')}</th></tr></thead>
-                    <tbody>
-                      {financeReport.breakdown.map((b, i) => (
-                        <tr key={i}>
-                          <td>{b.source || '—'}</td>
-                          <td style={{ textAlign: 'right', fontWeight: 600 }}>{fmt.format(b.total_amount || 0)} so'm</td>
-                          <td style={{ textAlign: 'right', color: 'var(--muted)' }}>{b.transaction_count || 0}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <div className="report-table-scroll">
+                    <table className="table compact-report-table">
+                      <thead><tr><th>{t('rpt_source_col')}</th><th style={{ textAlign: 'right' }}>{t('rpt_sum_col')}</th><th style={{ textAlign: 'right' }}>{t('rpt_count_col')}</th></tr></thead>
+                      <tbody>
+                        {financeReport.breakdown.map((b, i) => (
+                          <tr key={i}>
+                            <td>{b.source || '—'}</td>
+                            <td style={{ textAlign: 'right', fontWeight: 600 }}>{fmt.format(b.total_amount || 0)} so'm</td>
+                            <td style={{ textAlign: 'right', color: 'var(--muted)' }}>{b.transaction_count || 0}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
               {financeReport.by_month && Array.isArray(financeReport.by_month) && financeReport.by_month.length > 0 && (

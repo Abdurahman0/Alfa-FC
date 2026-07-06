@@ -30,6 +30,7 @@ export default function App() {
   const [groupId, setGroupId] = React.useState(null);
   const [contractId, setContractId] = React.useState(null);
   const [navCollapsed, setNavCollapsed] = React.useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
   const [toast, setToast] = React.useState(null);
 
   React.useEffect(() => {
@@ -83,6 +84,7 @@ export default function App() {
 
   function navigate(r) {
     setRoute(r);
+    setMobileNavOpen(false);
     setStudentId(null);
     setSessionId(null);
     setGroupId(null);
@@ -146,9 +148,11 @@ export default function App() {
         }}
         role={T.role}
         collapsed={navCollapsed}
-        onToggle={() => setNavCollapsed(!navCollapsed)}
+        onToggle={() => mobileNavOpen ? setMobileNavOpen(false) : setNavCollapsed(!navCollapsed)}
         user={currentUser}
+        mobileOpen={mobileNavOpen}
       />
+      {mobileNavOpen && <button className="mobile-nav-backdrop" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)} />}
       <div className="main">
         <Topbar
           crumbs={crumbKeys}
@@ -159,6 +163,7 @@ export default function App() {
           onTheme={(th) => T.setTweak('theme', th)}
           onSignOut={handleSignOut}
           user={currentUser}
+          onMenu={() => { setNavCollapsed(false); setMobileNavOpen(true); }}
           onNavigate={(type, id) => {
             if (type === 'student') { setStudentId(id); setRoute('students-profile'); }
           }}

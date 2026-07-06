@@ -20,7 +20,7 @@ export function SearchableSelect({ value, onChange, options, placeholder = 'Tanl
     return () => document.removeEventListener('mousedown', handler);
   }, []);
   return (
-    <div ref={ref} style={{ position: 'relative', ...style }}>
+    <div ref={ref} className="searchable-select" style={{ position: 'relative', ...style }}>
       <button type="button" onClick={() => setOpen(o => !o)} style={{
         height: 38, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 8,
         background: 'var(--surface)', color: 'var(--text)', fontSize: 13,
@@ -86,7 +86,7 @@ export function SearchableGroupSelect({ value, onChange, groups, placeholder, st
     return () => document.removeEventListener('mousedown', handler);
   }, []);
   return (
-    <div ref={ref} style={{ position: 'relative', ...style }}>
+    <div ref={ref} className="searchable-select" style={{ position: 'relative', ...style }}>
       <button type="button" onClick={() => setOpen(o => !o)} style={{ height: 38, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)', color: 'var(--text)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', minWidth: 180, width: '100%', justifyContent: 'space-between', whiteSpace: 'nowrap' }}>
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{selectedGroup ? selectedGroup.name : ph}</span>
         <I.ChevronDown size={14} style={{ flexShrink: 0 }} />
