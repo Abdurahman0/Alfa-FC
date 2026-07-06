@@ -25,7 +25,7 @@ export default function App() {
   const [permissions, setPermissions] = React.useState([]);
   const [authLoading, setAuthLoading] = React.useState(() => !!getToken());
   const [route, setRoute] = React.useState(() => localStorage.getItem('alpha_route') || 'dashboard');
-  const [studentId, setStudentId] = React.useState(null);
+  const [studentId, setStudentId] = React.useState(() => localStorage.getItem('alpha_student_id'));
   const [sessionId, setSessionId] = React.useState(null);
   const [groupId, setGroupId] = React.useState(null);
   const [contractId, setContractId] = React.useState(null);
@@ -62,6 +62,13 @@ export default function App() {
   }, [loggedIn]);
 
   React.useEffect(() => { localStorage.setItem('alpha_route', route); }, [route]);
+  React.useEffect(() => {
+    if (studentId == null) {
+      localStorage.removeItem('alpha_student_id');
+    } else {
+      localStorage.setItem('alpha_student_id', String(studentId));
+    }
+  }, [studentId]);
   React.useEffect(() => { document.documentElement.setAttribute('data-theme', T.theme); }, [T.theme]);
   React.useEffect(() => { document.documentElement.setAttribute('data-density', T.density); }, [T.density]);
 
