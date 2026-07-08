@@ -169,7 +169,7 @@ export default function App() {
           }}
         />
         <div className="content">
-          {route === 'dashboard' && <Dashboard role={T.role} onNav={navigate}/>} 
+          {route === 'dashboard' && <Dashboard role={T.role} onNav={navigate} onOpenGroup={(id) => { setGroupId(id); setRoute('groups'); }}/>} 
           {route === 'students' && <StudentsList onOpen={(id) => { setStudentId(id); setRoute('students-profile'); }} onNew={() => setRoute('students-new')} onToast={showToast}/>}
           {route === 'students-profile' && <StudentProfile studentId={studentId} onBack={() => navigate('students')}/>} 
           {route === 'students-new' && <StudentNew onBack={() => navigate('students')} onCreated={() => { showToast("O'quvchi muvaffaqiyatli yaratildi"); navigate('students'); }} onViewContract={(cid) => { setContractId(cid); navigate('contracts-view'); }}/>}

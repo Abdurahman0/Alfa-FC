@@ -429,6 +429,25 @@ input::placeholder, textarea::placeholder, select::placeholder {
 .stat:hover {
   box-shadow: var(--shadow-lg);
 }
+.dashboard-action,
+.dashboard-row-action,
+.dashboard-finance-action {
+  cursor: pointer;
+}
+.dashboard-action:focus-visible,
+.dashboard-row-action:focus-visible,
+.dashboard-finance-action:focus-visible {
+  outline: 2px solid var(--brand-navy);
+  outline-offset: 2px;
+}
+.dashboard-row-action,
+.dashboard-finance-action {
+  transition: background 0.15s, box-shadow 0.15s;
+}
+.dashboard-row-action:hover,
+.dashboard-finance-action:hover {
+  background: var(--hover) !important;
+}
 .stat-label {
   font-size: 12px;
   font-weight: 600;
