@@ -2,6 +2,7 @@
 import React from 'react';
 import { Icon } from '@/shared/ui/icons';
 import { SearchableGroupSelect, SearchableSelect } from '@/shared/ui/controls';
+import { Modal, DetailGrid } from '@/shared/ui/modal';
 import { useT } from '@/shared/i18n/lang';
 import {
   apiGetContracts,
@@ -70,7 +71,7 @@ import {
   apiGetAuditLogs,
 } from '@/shared/api';
 
-import { fmt } from '@/shared/lib/format';
+import { fmt, fmtDateTime } from '@/shared/lib/format';
 import { Stat } from '@/shared/ui/stat';
 
 const MONTH_UZ = ['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'];
@@ -327,7 +328,7 @@ export function TransactionsScreen({ onToast } = {}) {
         <div className="page-actions">
           <button className="btn primary" onClick={() => { setManualForm(p => ({ ...p, paid_at: p.paid_at || todayDateTimeLocal() })); setShowManual(true); }}><I.Plus size={15} /> {t('add')}</button>
           {selectedIds.length > 0 && (
-            <button className="btn ghost" style={{ color: 'var(--brand-red)', borderColor: 'var(--brand-red)' }} onClick={handleBulkDelete} disabled={deleting}>
+            <button className="btn ghost danger-ghost" onClick={handleBulkDelete} disabled={deleting}>
               <I.Trash2 size={15} /> {t('delete')} ({selectedIds.length})
             </button>
           )}
@@ -335,7 +336,7 @@ export function TransactionsScreen({ onToast } = {}) {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+      <div className="filter-buttons" style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
         <SearchableSelect
           value={scope}
           onChange={v => { setScope(v); setPage(1); }}
@@ -373,7 +374,7 @@ export function TransactionsScreen({ onToast } = {}) {
       </div>
 
       {stats && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 14 }}>
+        <div className="grid-4" style={{ marginBottom: 14 }}>
           <Stat label={t('tx_stat_total_paid')} value={`${fmt.format(stats.total_paid || 0)} so'm`} tone="success" icon={I.Wallet} />
           <Stat label={t('tx_stat_success_count')} value={stats.successful_transactions || 0} tone="navy" icon={I.Check} />
           <Stat label="Click" value={stats.click_transactions || 0} icon={I.CreditCard} />
@@ -397,23 +398,23 @@ export function TransactionsScreen({ onToast } = {}) {
             {rows.length === 0 && (
               <tr><td colSpan={colCount} style={{ padding: 18, color: 'var(--muted)' }}>{loadError || t('tx_not_found_msg')}</td></tr>
             )}
-            {rows.map(t => {
-              const st = statusLabel(t.status);
-              const checked = selectedIds.includes(t.id);
+            {rows.map(tx => {
+              const st = statusLabel(tx.status);
+              const checked = selectedIds.includes(tx.id);
               return (
-                <tr key={t.id}>
+                <tr key={tx.id} className={checked ? 'selected' : undefined}>
                   <td style={{ padding: '0 8px' }} onClick={e => e.stopPropagation()}>
-                    <input type="checkbox" checked={checked} onChange={e => setSelectedIds(p => e.target.checked ? [...p, t.id] : p.filter(x => x !== t.id))} />
+                    <input type="checkbox" checked={checked} onChange={e => setSelectedIds(p => e.target.checked ? [...p, tx.id] : p.filter(x => x !== tx.id))} />
                   </td>
-                  <td style={{ fontVariantNumeric: 'tabular-nums', cursor: 'pointer', fontSize: 12.5 }} onClick={() => openDetail(t.id, t)}>{(t.paid_at || t.created_at || '').slice(0, 16).replace('T', ' ')}</td>
-                  <td style={{ cursor: 'pointer' }} onClick={() => openDetail(t.id, t)}>{t.student_full_name || `#${t.student_id || '—'}`}</td>
-                  <td style={{ cursor: 'pointer' }} onClick={() => openDetail(t.id, t)}><span className="chip">{sourceLabel(t.source)}</span></td>
-                  <td style={{ color: 'var(--muted)', fontSize: 12.5, cursor: 'pointer' }} onClick={() => openDetail(t.id, t)}>{(t.payment_months || []).map(m => monthName(m)).join(', ') || '—'}</td>
-                  <td style={{ textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums', cursor: 'pointer' }} onClick={() => openDetail(t.id, t)}>{fmt.format(t.amount || 0)} so'm</td>
-                  <td style={{ cursor: 'pointer' }} onClick={() => openDetail(t.id, t)}><span className={'chip' + (st.cls ? ` ${st.cls}` : '')}>{st.text}</span></td>
+                  <td style={{ fontVariantNumeric: 'tabular-nums', cursor: 'pointer', fontSize: 12.5 }} onClick={() => openDetail(tx.id, tx)}>{fmtDateTime(tx.paid_at || tx.created_at)}</td>
+                  <td style={{ cursor: 'pointer' }} onClick={() => openDetail(tx.id, tx)}>{tx.student_full_name || `#${tx.student_id || '—'}`}</td>
+                  <td style={{ cursor: 'pointer' }} onClick={() => openDetail(tx.id, tx)}><span className="chip">{sourceLabel(tx.source)}</span></td>
+                  <td style={{ color: 'var(--muted)', fontSize: 12.5, cursor: 'pointer' }} onClick={() => openDetail(tx.id, tx)}>{(tx.payment_months || []).map(m => monthName(m)).join(', ') || '—'}</td>
+                  <td style={{ textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums', cursor: 'pointer' }} onClick={() => openDetail(tx.id, tx)}>{fmt.format(tx.amount || 0)} so'm</td>
+                  <td style={{ cursor: 'pointer' }} onClick={() => openDetail(tx.id, tx)}><span className={'chip' + (st.cls ? ` ${st.cls}` : '')}>{st.text}</span></td>
                   {scope === 'unassigned' && (
                     <td>
-                      <button className="btn ghost" style={{ padding: '3px 10px', fontSize: 12 }} onClick={() => setAssignTxId(t.id)}>{t('tx_assign_btn')}</button>
+                      <button className="btn ghost" style={{ padding: '3px 10px', fontSize: 12 }} onClick={() => setAssignTxId(tx.id)}>{t('tx_assign_btn')}</button>
                     </td>
                   )}
                 </tr>
@@ -433,100 +434,101 @@ export function TransactionsScreen({ onToast } = {}) {
 
       {/* Detail modal */}
       {detail && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', display: 'grid', placeItems: 'center', zIndex: 140 }} onClick={() => setDetail(null)}>
-          <div className="card" style={{ width: 560, padding: 18 }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <h3 style={{ margin: 0 }}>{t('transactions_title')} #{detail.id}</h3>
-              <button className="icon-btn" style={{ width: 30, height: 30 }} onClick={() => setDetail(null)}><I.X size={15} /></button>
-            </div>
-            {detailLoading ? (
-              <div className="empty" style={{ padding: 24 }}>{t('loading')}</div>
-            ) : (
-              <>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
-                  {[
-                    [t('tx_amount_col'), `${fmt.format(detail.amount || 0)} so'm`],
-                    [t('transactions_col_source'), sourceLabel(detail.source)],
-                    [t('transactions_col_status'), statusLabel(detail.status).text],
-                    [t('transactions_col_date'), (detail.paid_at || detail.created_at || '').slice(0, 19).replace('T', ' ')],
-                    [t('tx_months_col'), (detail.payment_months || []).map(m => monthName(m)).join(', ') || '—'],
-                    [t('transactions_col_student'), detail.student_full_name || (detail.student_id ? `#${detail.student_id}` : '—')],
-                    [t('transactions_col_contract'), detail.contract_number || (detail.contract_id ? `#${detail.contract_id}` : '—')],
-                    [t('tx_py_label'), detail.payment_year || '—'],
-                    ['External ID', detail.external_id || '—'],
-                    [t('tx_note_label'), detail.comment || '—'],
-                  ].map(([k, v]) => (
-                    <div key={k}>
-                      <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 700, marginBottom: 4 }}>{k}</div>
-                      <div style={{ fontSize: 13.5 }}>{v}</div>
-                    </div>
-                  ))}
+        <Modal
+          size="lg"
+          onClose={() => setDetail(null)}
+          title={`${t('transactions_title')} #${detail.id}`}
+          footer={!detailLoading ? (
+            <>
+              {detail.status !== 'cancelled' && detail.status !== 'failed' && (
+                <button className="btn ghost" style={{ color: 'var(--warning)' }} onClick={() => handleCancel(detail.id)}>
+                  <I.XCircle size={14} /> {t('tx_cancel_action')}
+                </button>
+              )}
+              <button className="btn ghost danger-ghost" onClick={() => handleDelete(detail.id)}>
+                <I.Trash2 size={14} /> {t('delete')}
+              </button>
+            </>
+          ) : undefined}
+        >
+          {detailLoading ? (
+            <div className="empty" style={{ padding: 24 }}>{t('loading')}</div>
+          ) : (
+            <>
+              <DetailGrid items={[
+                { label: t('tx_amount_col'), value: `${fmt.format(detail.amount || 0)} so'm` },
+                { label: t('transactions_col_source'), value: sourceLabel(detail.source) },
+                { label: t('transactions_col_status'), value: (
+                  <span className={'chip' + (statusLabel(detail.status).cls ? ` ${statusLabel(detail.status).cls}` : '')}>{statusLabel(detail.status).text}</span>
+                ) },
+                { label: t('transactions_col_date'), value: fmtDateTime(detail.paid_at || detail.created_at) },
+                { label: t('tx_months_col'), value: (detail.payment_months || []).map(m => monthName(m)).join(', ') || '—' },
+                { label: t('transactions_col_student'), value: detail.student_full_name || (detail.student_id ? `#${detail.student_id}` : '—') },
+                { label: t('transactions_col_contract'), value: detail.contract_number || (detail.contract_id ? `#${detail.contract_id}` : '—') },
+                { label: t('tx_py_label'), value: detail.payment_year || '—' },
+                { label: 'External ID', value: detail.external_id || '—' },
+                { label: t('tx_note_label'), value: detail.comment || '—' },
+              ]} />
+              {detail.settlement_document_url && (
+                <div style={{ marginTop: 12 }}>
+                  <a href={detail.settlement_document_url} target="_blank" rel="noopener noreferrer" className="btn ghost" style={{ fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--accent)' }}>
+                    <I.File size={13} /> {t('tx_view_document')}
+                  </a>
                 </div>
-                {detail.settlement_document_url && (
-                  <div style={{ marginBottom: 10 }}>
-                    <a href={detail.settlement_document_url} target="_blank" rel="noopener noreferrer" className="btn ghost" style={{ fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                      <I.File size={13} /> {t('tx_view_document')}
-                    </a>
-                  </div>
-                )}
-                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                  {detail.status !== 'cancelled' && detail.status !== 'failed' && (
-                    <button className="btn ghost" style={{ color: 'var(--warning)', borderColor: 'var(--warning)' }} onClick={() => handleCancel(detail.id)}>
-                      <I.XCircle size={14} /> {t('tx_cancel_action')}
-                    </button>
-                  )}
-                  <button className="btn ghost" style={{ color: 'var(--brand-red)', borderColor: 'var(--brand-red)' }} onClick={() => handleDelete(detail.id)}>
-                    <I.Trash2 size={14} /> {t('delete')}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
+              )}
+            </>
+          )}
+        </Modal>
       )}
 
       {/* Assign modal */}
       {assignTxId && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', display: 'grid', placeItems: 'center', zIndex: 140 }} onClick={() => setAssignTxId(null)}>
-          <div className="card" style={{ width: 420, padding: 18 }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <h3 style={{ margin: 0 }}>{t('tx_assign_modal')}</h3>
-              <button className="icon-btn" style={{ width: 30, height: 30 }} onClick={() => setAssignTxId(null)}><I.X size={15} /></button>
-            </div>
-            <div style={{ display: 'grid', gap: 10 }}>
-              <div className="field">
-                <label>{t('tx_st_id')}</label>
-                <input type="number" value={assignForm.student_id} onChange={e => setAssignForm(p => ({ ...p, student_id: e.target.value }))} placeholder={t('tx_st_id')} />
-              </div>
-              <div className="field">
-                <label>{t('tx_ct_id')}</label>
-                <input type="number" value={assignForm.contract_id} onChange={e => setAssignForm(p => ({ ...p, contract_id: e.target.value }))} placeholder={t('tx_ct_id')} />
-              </div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
+        <Modal
+          size="sm"
+          onClose={() => setAssignTxId(null)}
+          title={t('tx_assign_modal')}
+          footer={
+            <>
               <button className="btn ghost" onClick={() => setAssignTxId(null)}>{t('cancel')}</button>
               <button className="btn primary" onClick={handleAssign} disabled={assigning}>
                 {assigning ? t('tx_doing_assign') : t('tx_assign_btn')}
               </button>
+            </>
+          }
+        >
+          <div style={{ display: 'grid', gap: 10 }}>
+            <div className="field">
+              <label>{t('tx_st_id')}</label>
+              <input type="number" value={assignForm.student_id} onChange={e => setAssignForm(p => ({ ...p, student_id: e.target.value }))} placeholder={t('tx_st_id')} />
+            </div>
+            <div className="field">
+              <label>{t('tx_ct_id')}</label>
+              <input type="number" value={assignForm.contract_id} onChange={e => setAssignForm(p => ({ ...p, contract_id: e.target.value }))} placeholder={t('tx_ct_id')} />
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* Manual transaction modal */}
       {showManual && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', display: 'grid', placeItems: 'center', zIndex: 140 }} onClick={() => setShowManual(false)}>
-          <div className="card" style={{ width: 520, padding: 18, maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <h3 style={{ margin: 0 }}>{t('tx_manual_modal')}</h3>
-              <button className="icon-btn" style={{ width: 30, height: 30 }} onClick={() => { setShowManual(false); setManualWithProof(false); }}><I.X size={15} /></button>
-            </div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, fontSize: 13, cursor: 'pointer' }}>
-              <input type="checkbox" checked={manualWithProof} onChange={e => setManualWithProof(e.target.checked)} />
-              {t('tx_proof_toggle')}
-            </label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <div className="field" style={{ gridColumn: 'span 2' }}>
+        <Modal
+          onClose={() => { setShowManual(false); setManualWithProof(false); }}
+          title={t('tx_manual_modal')}
+          footer={
+            <>
+              <button className="btn ghost" onClick={() => { setShowManual(false); setManualWithProof(false); }}>{t('cancel')}</button>
+              <button className="btn primary" onClick={submitManual} disabled={manualSaving}>
+                {manualSaving ? t('saving') : t('tx_submit_btn')}
+              </button>
+            </>
+          }
+        >
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, fontSize: 13, cursor: 'pointer' }}>
+            <input type="checkbox" checked={manualWithProof} onChange={e => setManualWithProof(e.target.checked)} />
+            {t('tx_proof_toggle')}
+          </label>
+          <div className="form-row" style={{ gap: 10 }}>
+              <div className="field col-span-2">
                 <label>{t('tx_ct_no_label')}</label>
                 <input value={manualForm.contract_number} onChange={e => setManualForm(p => ({ ...p, contract_number: e.target.value }))} placeholder="1-2026" />
                 {(manualContractLoading || manualContractError || manualContractMatches.length > 0 || manualForm.contract_number.trim().length >= 2) && (
@@ -535,7 +537,7 @@ export function TransactionsScreen({ onToast } = {}) {
                       <div style={{ padding: '9px 10px', fontSize: 12.5, color: 'var(--muted)' }}>{t('tx_contract_searching')}</div>
                     )}
                     {!manualContractLoading && manualContractError && (
-                      <div style={{ padding: '9px 10px', fontSize: 12.5, color: 'var(--brand-red)' }}>{manualContractError}</div>
+                      <div style={{ padding: '9px 10px', fontSize: 12.5, color: 'var(--danger)' }}>{manualContractError}</div>
                     )}
                     {!manualContractLoading && !manualContractError && manualContractMatches.length === 0 && manualForm.contract_number.trim().length >= 2 && (
                       <div style={{ padding: '9px 10px', fontSize: 12.5, color: 'var(--muted)' }}>{t('tx_contract_not_found')}</div>
@@ -608,11 +610,11 @@ export function TransactionsScreen({ onToast } = {}) {
                 <label>{t('tx_pd_label')}</label>
                 <input type="datetime-local" value={manualForm.paid_at} onChange={e => setManualForm(p => ({ ...p, paid_at: e.target.value }))} />
               </div>
-              <div className="field" style={{ gridColumn: 'span 2' }}>
+              <div className="field col-span-2">
                 <label>{t('tx_months_select_label')}</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
                   {[1,2,3,4,5,6,7,8,9,10,11,12].map(m => (
-                    <label key={m} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, padding: '5px 4px', borderRadius: 6, border: '1px solid var(--border)', background: manualForm.payment_months.includes(m) ? 'var(--accent-soft,rgba(200,32,44,0.1))' : 'var(--surface)', cursor: 'pointer', fontWeight: manualForm.payment_months.includes(m) ? 700 : 400 }}>
+                    <label key={m} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, padding: '5px 4px', borderRadius: 6, border: manualForm.payment_months.includes(m) ? '1px solid var(--accent-border)' : '1px solid var(--border)', background: manualForm.payment_months.includes(m) ? 'var(--accent-soft)' : 'var(--surface)', color: manualForm.payment_months.includes(m) ? 'var(--accent)' : 'var(--text)', cursor: 'pointer', fontWeight: manualForm.payment_months.includes(m) ? 700 : 400 }}>
                       <input type="checkbox" checked={manualForm.payment_months.includes(m)} onChange={e => setManualForm(p => ({ ...p, payment_months: e.target.checked ? [...p.payment_months, m] : p.payment_months.filter(x => x !== m) }))} style={{ display: 'none' }} />
                       {monthName(m)}
                     </label>
@@ -622,25 +624,18 @@ export function TransactionsScreen({ onToast } = {}) {
                   <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>{t('tx_selected_months')}: {manualForm.payment_months.map(m => monthName(m)).join(', ')}</div>
                 )}
               </div>
-              <div className="field" style={{ gridColumn: 'span 2' }}>
+              <div className="field col-span-2">
                 <label>{t('tx_note_label')}</label>
                 <input value={manualForm.comment} onChange={e => setManualForm(p => ({ ...p, comment: e.target.value }))} placeholder={t('tx_note_label')} />
               </div>
               {manualWithProof && (
-                <div className="field" style={{ gridColumn: 'span 2' }}>
+                <div className="field col-span-2">
                   <label>{t('tx_proof_label')}</label>
                   <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={e => setManualForm(p => ({ ...p, proof_file: e.target.files?.[0] || null }))} />
                 </div>
               )}
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
-              <button className="btn ghost" onClick={() => { setShowManual(false); setManualWithProof(false); }}>{t('cancel')}</button>
-              <button className="btn primary" onClick={submitManual} disabled={manualSaving}>
-                {manualSaving ? t('saving') : t('tx_submit_btn')}
-              </button>
-            </div>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

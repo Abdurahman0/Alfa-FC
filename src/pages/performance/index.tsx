@@ -14,6 +14,16 @@ import { useCoachGroupsQuery, useGroupPerformanceTableQuery } from '@/features/p
 import { SearchableGroupSelect, SearchableSelect } from '@/shared/ui/controls';
 import { useT } from '@/shared/i18n/lang';
 import { avatarColor } from '@/shared/lib/avatar';
+import { monthName } from '@/shared/lib/format';
+
+// compact "19 May" for narrow match-column headers
+function shortDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return String(iso);
+  return `${d.getDate()} ${monthName(d.getMonth())}`;
+}
+import { Modal } from '@/shared/ui/modal';
 
 export function PerformanceTable() {
   const { t } = useT();
@@ -161,7 +171,7 @@ export function PerformanceTable() {
       case 'goal': case 'gol': return { bg: 'var(--success-soft)', color: 'var(--success)', label: '⚽', numericGoals: 1 };
       case 'assist': case 'uzatma': return { bg: 'var(--navy-soft)', color: 'var(--navy-ink)', label: '↗', numericGoals: 0 };
       case 'yellow': case 'sariq': return { bg: 'var(--warning-soft)', color: 'var(--warning)', label: '▢', numericGoals: 0 };
-      case 'absent': case 'kelmagan': return { bg: 'var(--accent-soft)', color: 'var(--brand-red)', label: '✗', numericGoals: 0 };
+      case 'absent': case 'kelmagan': return { bg: 'var(--danger-soft)', color: 'var(--danger)', label: '✗', numericGoals: 0 };
       case null: case '': case 'played': return { bg: 'var(--surface-2)', color: 'var(--text-2)', label: '·', numericGoals: 0 };
       default: {
         const n = Number(rawValue);
@@ -172,7 +182,7 @@ export function PerformanceTable() {
   }
 
   if (groupsQuery.isLoading) return <div className="empty" style={{ padding: 48 }}>{t('perf_groups_loading')}</div>;
-  if (groupsQuery.isError) return <div className="empty" style={{ padding: 48, color: 'var(--brand-red)' }}>{t('perf_groups_error')}</div>;
+  if (groupsQuery.isError) return <div className="empty" style={{ padding: 48, color: 'var(--danger)' }}>{t('perf_groups_error')}</div>;
   if (groups.length === 0) return <div className="empty" style={{ padding: 48 }}>{t('perf_groups_empty')}</div>;
 
   return (
@@ -218,7 +228,7 @@ export function PerformanceTable() {
       )}
 
       {tableQuery.isLoading && <div className="empty" style={{ padding: 48 }}>{t('loading')}</div>}
-      {tableQuery.isError && <div className="empty" style={{ padding: 48, color: 'var(--brand-red)' }}>{t('perf_load_error')}</div>}
+      {tableQuery.isError && <div className="empty" style={{ padding: 48, color: 'var(--danger)' }}>{t('perf_load_error')}</div>}
 
       {!tableQuery.isLoading && !tableQuery.isError && matches.length === 0 && (
         <div className="empty" style={{ padding: 48 }}>
@@ -236,14 +246,14 @@ export function PerformanceTable() {
 
       {!tableQuery.isLoading && !tableQuery.isError && matches.length > 0 && (
         <>
-          <div className="card" style={{ overflow: 'auto' }}>
+          <div className="table-wrap" style={{ overflow: 'auto' }}>
             <table className="table performance-table" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
               <thead>
                 <tr>
                   <th style={{ position: 'sticky', left: 0, background: 'var(--surface-2)', zIndex: 2, minWidth: 220 }}>{t('field_student')}</th>
                   {matches.map(m => (
                     <th key={m.id} style={{ textAlign: 'center', minWidth: editMode ? 110 : 90 }}>
-                      <div style={{ fontSize: 10.5, color: 'var(--muted)' }}>{m.match_date?.slice(5)}{m.tour_label ? ' · ' + m.tour_label : ''}</div>
+                      <div style={{ fontSize: 10.5, color: 'var(--muted)' }}>{shortDate(m.match_date)}{m.tour_label ? ' · ' + m.tour_label : ''}</div>
                       <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', textTransform: 'none', letterSpacing: 0 }}>{m.opponent}</div>
                       {editMode && (
                         <div style={{ display: 'flex', justifyContent: 'center', gap: 4, marginTop: 4 }}>
@@ -254,8 +264,8 @@ export function PerformanceTable() {
                             onClick={() => openEditMatch(m)}
                           ><I.Edit size={11}/></button>
                           <button
-                            className="icon-btn"
-                            style={{ width: 22, height: 22, color: 'var(--brand-red)', opacity: deletingMatchId === m.id ? 0.5 : 1 }}
+                            className="icon-btn danger"
+                            style={{ width: 22, height: 22, opacity: deletingMatchId === m.id ? 0.5 : 1 }}
                             title={t('btn_delete')}
                             disabled={deletingMatchId === m.id}
                             onClick={() => handleDeleteMatch(m)}
@@ -314,7 +324,7 @@ export function PerformanceTable() {
               ['⚽', 'var(--success-soft)', 'var(--success)', t('perf_legend_goal')],
               ['↗', 'var(--navy-soft)', 'var(--navy-ink)', t('perf_legend_assist')],
               ['▢', 'var(--warning-soft)', 'var(--warning)', t('perf_legend_yellow')],
-              ['✗', 'var(--accent-soft)', 'var(--brand-red)', t('perf_legend_absent')],
+              ['✗', 'var(--danger-soft)', 'var(--danger)', t('perf_legend_absent')],
               ['·', 'var(--surface-2)', 'var(--text-2)', t('perf_legend_played')],
             ].map(([lbl, bg, clr, name]) => (
               <span key={name}><span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 22, background: bg, color: clr, borderRadius: 4, marginRight: 6, fontWeight: 700 }}>{lbl}</span>{name}</span>
@@ -326,48 +336,47 @@ export function PerformanceTable() {
 
       {/* Add match modal */}
       {showAddMatch && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }} onClick={() => setShowAddMatch(false)}>
-          <div className="card" style={{ width: 460, padding: 24, boxShadow: 'var(--shadow-lg)' }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{t('perf_add_match')}</h3>
-              <button className="icon-btn" style={{ width: 32, height: 32 }} onClick={() => setShowAddMatch(false)}><I.X size={16}/></button>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div className="field"><label>{t('field_date')} <span className="req">*</span></label><input type="date" value={newMatch.match_date} onChange={e => setNewMatch(p => ({ ...p, match_date: e.target.value }))} /></div>
-              <div className="field"><label>{t('field_opponent')} <span className="req">*</span></label><input value={newMatch.opponent} onChange={e => setNewMatch(p => ({ ...p, opponent: e.target.value }))} placeholder="Masalan: Almaty FC"/></div>
-              <div className="field"><label>{t('field_tour')}</label><input value={newMatch.tour_label} onChange={e => setNewMatch(p => ({ ...p, tour_label: e.target.value }))} placeholder="Masalan: 1-tur"/></div>
-            </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 20, justifyContent: 'flex-end' }}>
+        <Modal
+          onClose={() => setShowAddMatch(false)}
+          title={t('perf_add_match')}
+          footer={(
+            <>
               <button className="btn ghost" onClick={() => setShowAddMatch(false)}>{t('cancel')}</button>
               <button className="btn primary" onClick={handleAddMatch} disabled={savingMatch}>
                 <I.Plus size={14}/> {savingMatch ? t('adding') : t('add')}
               </button>
-            </div>
+            </>
+          )}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div className="field"><label>{t('field_date')} <span className="req">*</span></label><input type="date" value={newMatch.match_date} onChange={e => setNewMatch(p => ({ ...p, match_date: e.target.value }))} /></div>
+            <div className="field"><label>{t('field_opponent')} <span className="req">*</span></label><input value={newMatch.opponent} onChange={e => setNewMatch(p => ({ ...p, opponent: e.target.value }))} placeholder="Masalan: Almaty FC"/></div>
+            <div className="field"><label>{t('field_tour')}</label><input value={newMatch.tour_label} onChange={e => setNewMatch(p => ({ ...p, tour_label: e.target.value }))} placeholder="Masalan: 1-tur"/></div>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* Edit match modal */}
       {editMatchTarget && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 150 }} onClick={() => setEditMatchTarget(null)}>
-          <div className="card" style={{ width: 420, padding: 24, boxShadow: 'var(--shadow-lg)' }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{t('perf_edit_match')}</h3>
-              <button className="icon-btn" style={{ width: 32, height: 32 }} onClick={() => setEditMatchTarget(null)}><I.X size={16}/></button>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div className="field"><label>{t('field_date')} <span className="req">*</span></label><input type="date" value={editMatchForm.match_date} onChange={e => setEditMatchForm(p => ({ ...p, match_date: e.target.value }))} /></div>
-              <div className="field"><label>{t('field_opponent')} <span className="req">*</span></label><input value={editMatchForm.opponent} onChange={e => setEditMatchForm(p => ({ ...p, opponent: e.target.value }))} placeholder="Masalan: Almaty FC"/></div>
-              <div className="field"><label>{t('field_tour')}</label><input value={editMatchForm.tour_label} onChange={e => setEditMatchForm(p => ({ ...p, tour_label: e.target.value }))} placeholder="Masalan: 1-tur"/></div>
-            </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 20, justifyContent: 'flex-end' }}>
+        <Modal
+          onClose={() => setEditMatchTarget(null)}
+          title={t('perf_edit_match')}
+          size="sm"
+          footer={(
+            <>
               <button className="btn ghost" onClick={() => setEditMatchTarget(null)}>{t('cancel')}</button>
               <button className="btn primary" onClick={handleEditMatch} disabled={savingMatch}>
                 <I.Check size={14}/> {savingMatch ? t('saving') : t('save')}
               </button>
-            </div>
+            </>
+          )}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div className="field"><label>{t('field_date')} <span className="req">*</span></label><input type="date" value={editMatchForm.match_date} onChange={e => setEditMatchForm(p => ({ ...p, match_date: e.target.value }))} /></div>
+            <div className="field"><label>{t('field_opponent')} <span className="req">*</span></label><input value={editMatchForm.opponent} onChange={e => setEditMatchForm(p => ({ ...p, opponent: e.target.value }))} placeholder="Masalan: Almaty FC"/></div>
+            <div className="field"><label>{t('field_tour')}</label><input value={editMatchForm.tour_label} onChange={e => setEditMatchForm(p => ({ ...p, tour_label: e.target.value }))} placeholder="Masalan: 1-tur"/></div>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

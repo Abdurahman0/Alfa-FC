@@ -14,6 +14,7 @@ import { useCoachGroupsQuery, useGroupPerformanceTableQuery } from '@/features/p
 import { SearchableGroupSelect, SearchableSelect } from '@/shared/ui/controls';
 import { useT } from '@/shared/i18n/lang';
 import { avatarColor } from '@/shared/lib/avatar';
+import { fmtDate } from '@/shared/lib/format';
 
 export function AttendanceMark({ sessionId, onBack }) {
   const I = Icon;
@@ -78,7 +79,7 @@ export function AttendanceMark({ sessionId, onBack }) {
         <div>
           <h1 className="page-title">{session.topic}</h1>
           <div className="page-sub" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <span><I.Calendar size={12} style={{ verticalAlign: -2 }}/> {session.session_date}</span>
+            <span><I.Calendar size={12} style={{ verticalAlign: -2 }}/> {fmtDate(session.session_date)}</span>
             <span><I.Clock size={12} style={{ verticalAlign: -2 }}/> {session.start_time} – {session.end_time}</span>
             {session.station && <span><I.MapPin size={12} style={{ verticalAlign: -2 }}/> {session.station}</span>}
           </div>
@@ -90,7 +91,7 @@ export function AttendanceMark({ sessionId, onBack }) {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
+      <div className="grid-4" style={{ marginBottom: 16 }}>
         <div className="stat" style={{ padding: 14 }}>
           <div className="stat-label">{t('total')}</div>
           <div className="stat-value" style={{ fontSize: 22 }}>{students.length}</div>
@@ -103,9 +104,9 @@ export function AttendanceMark({ sessionId, onBack }) {
           <div className="stat-label" style={{ color: 'var(--warning)' }}>{t('att_late')}</div>
           <div className="stat-value" style={{ color: 'var(--warning)', fontSize: 22 }}>{counts.late}</div>
         </div>
-        <div className="stat" style={{ padding: 14, background: 'var(--accent-soft)', borderColor: 'transparent' }}>
-          <div className="stat-label" style={{ color: 'var(--brand-red)' }}>{t('att_absent')}</div>
-          <div className="stat-value" style={{ color: 'var(--brand-red)', fontSize: 22 }}>{counts.absent}</div>
+        <div className="stat" style={{ padding: 14, background: 'var(--danger-soft)', borderColor: 'transparent' }}>
+          <div className="stat-label" style={{ color: 'var(--danger)' }}>{t('att_absent')}</div>
+          <div className="stat-value" style={{ color: 'var(--danger)', fontSize: 22 }}>{counts.absent}</div>
         </div>
       </div>
 
@@ -116,7 +117,7 @@ export function AttendanceMark({ sessionId, onBack }) {
             <I.Check size={13} color="var(--success)"/> {t('att_btn_present')}
           </button>
           <button className="btn sm" onClick={() => { const m = {}; students.forEach(s => m[s.id] = 'absent'); setMarks(m); }}>
-            <I.X size={13} color="var(--brand-red)"/> {t('att_btn_absent')}
+            <I.X size={13} color="var(--danger)"/> {t('att_btn_absent')}
           </button>
           <div style={{ flex: 1 }}></div>
           {students.length > 0 && <span style={{ fontSize: 12.5, color: 'var(--muted)' }}>{t('att_attendance_label')} <strong style={{ color: 'var(--text)' }}>{Math.round(counts.present / students.length * 100)}%</strong></span>}
@@ -126,7 +127,7 @@ export function AttendanceMark({ sessionId, onBack }) {
       {students.length === 0 && <div className="empty">{t('att_no_students')}</div>}
 
       {students.length > 0 && (
-        <div className="card" style={{ overflow: 'hidden' }}>
+        <div className="table-wrap">
           <table className="table">
             <thead>
               <tr><th>{t('att_col_student')}</th><th style={{ width: 380, textAlign: 'center' }}>{t('att_col_status')}</th><th>{t('att_col_comment')}</th></tr>
@@ -151,7 +152,7 @@ export function AttendanceMark({ sessionId, onBack }) {
                         {[
                           { k: 'present', l: t('att_btn_present'), color: 'var(--success)', soft: 'var(--success-soft)', icon: 'Check' },
                           { k: 'late', l: t('att_btn_late'), color: 'var(--warning)', soft: 'var(--warning-soft)', icon: 'Clock' },
-                          { k: 'absent', l: t('att_btn_absent'), color: 'var(--brand-red)', soft: 'var(--accent-soft)', icon: 'X' },
+                          { k: 'absent', l: t('att_btn_absent'), color: 'var(--danger)', soft: 'var(--danger-soft)', icon: 'X' },
                         ].map(b => {
                           const Ic = I[b.icon];
                           const sel = m === b.k;

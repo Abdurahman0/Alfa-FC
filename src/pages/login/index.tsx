@@ -36,7 +36,6 @@ export function LoginScreen({ onLogin }) {
       background: 'var(--bg)',
     }}>
       <div className="login-hero" style={{
-        background: 'linear-gradient(160deg, #0E1836 0%, #1E3A78 55%, #101D42 100%)',
         color: 'white',
         padding: '48px 56px',
         display: 'flex',
@@ -45,7 +44,7 @@ export function LoginScreen({ onLogin }) {
         position: 'relative',
         overflow: 'hidden',
       }}>
-        <div style={{ position: 'absolute', top: -120, right: -120, width: 380, height: 380, borderRadius: '50%', background: 'rgba(200,32,44,0.18)', filter: 'blur(10px)' }}></div>
+        <div style={{ position: 'absolute', top: -120, right: -120, width: 380, height: 380, borderRadius: '50%', background: 'color-mix(in srgb, var(--accent) 18%, transparent)', filter: 'blur(10px)' }}></div>
         <div style={{ position: 'absolute', bottom: -100, left: -80, width: 300, height: 300, borderRadius: '50%', background: 'rgba(245,185,33,0.10)', filter: 'blur(10px)' }}></div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, position: 'relative' }}>
           <AlphaShield size={48}/>
@@ -102,10 +101,10 @@ export function LoginScreen({ onLogin }) {
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-2)' }}>
               <input type="checkbox" defaultChecked/> {t('login_remember')}
             </label>
-            <a href="#" style={{ fontSize: 13, color: 'var(--brand-red)', textDecoration: 'none', fontWeight: 600 }}>{t('login_forgot')}</a>
+            <a href="#" style={{ fontSize: 13, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>{t('login_forgot')}</a>
           </div>
           {error && (
-            <div style={{ marginBottom: 14, padding: '10px 14px', background: 'var(--accent-soft)', border: '1px solid var(--brand-red)', borderRadius: 8, fontSize: 13, color: 'var(--brand-red)', fontWeight: 500 }}>
+            <div style={{ marginBottom: 14, padding: '10px 14px', background: 'var(--danger-soft)', border: '1px solid var(--danger)', borderRadius: 8, fontSize: 13, color: 'var(--danger)', fontWeight: 500 }}>
               {error}
             </div>
           )}

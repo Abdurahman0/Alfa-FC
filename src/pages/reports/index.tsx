@@ -240,7 +240,7 @@ export function ReportsScreen() {
             { label: t('rpt_active_students'), value: safeSummary.active_students ?? '—', icon: I.Users, color: 'var(--text)', iconBg: 'var(--surface-2)' },
             { label: t('rpt_today_revenue'), value: safeSummary.today_revenue != null ? `${fmt.format(safeSummary.today_revenue)} so'm` : '—', icon: I.TrendingUp, color: 'var(--success)', iconBg: 'var(--success-soft)' },
             {
-              label: t('rpt_debtors_count_lbl'), value: safeSummary.total_debtors ?? '—', icon: I.AlertTriangle, color: 'var(--brand-red)', iconBg: 'var(--accent-soft)',
+              label: t('rpt_debtors_count_lbl'), value: safeSummary.total_debtors ?? '—', icon: I.AlertTriangle, color: 'var(--danger)', iconBg: 'var(--danger-soft)',
               sub: (safeSummary.total_debt ?? safeSummary.total_outstanding ?? safeSummary.outstanding_debt) != null
                 ? `${fmt.format(safeSummary.total_debt ?? safeSummary.total_outstanding ?? safeSummary.outstanding_debt)} so'm ${t('rpt_total_debt')}`
                 : null,
@@ -263,7 +263,7 @@ export function ReportsScreen() {
 
       {tab === 'finance' && (
         <div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', borderBottom: '1px solid var(--border)', marginBottom: 20 }}>
+          <div className="grid-4" style={{ marginBottom: 20 }}>
             {[
               {
                 label: t('rpt_total_income'),
@@ -278,24 +278,20 @@ export function ReportsScreen() {
               {
                 label: t('rpt_total_debt'),
                 value: financeReport?.total_debt != null ? `${fmt.format(financeReport.total_debt)} so'm` : '—',
-                icon: I.AlertTriangle, color: 'var(--brand-red)',
+                icon: I.AlertTriangle, color: 'var(--danger)',
               },
               {
                 label: t('rpt_success_tx'),
                 value: txStats?.successful_transactions ?? '—',
                 icon: I.Wallet, color: 'var(--text)',
               },
-            ].map((item, idx, arr) => (
-              <div key={item.label} style={{
-                padding: '20px 24px',
-                borderRight: idx < arr.length - 1 ? '1px solid var(--border)' : 'none',
-                display: 'flex', flexDirection: 'column', gap: 8,
-              }}>
+            ].map((item) => (
+              <div key={item.label} className="stat">
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{item.label}</span>
+                  <span className="stat-label">{item.label}</span>
                   <item.icon size={15} color={item.color} />
                 </div>
-                <div style={{ fontSize: 26, fontWeight: 700, color: item.color, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{item.value}</div>
+                <div className="stat-value" style={{ color: item.color, fontSize: 24 }}>{item.value}</div>
               </div>
             ))}
           </div>
@@ -313,23 +309,6 @@ export function ReportsScreen() {
 
           {financeReport ? (
             <div className="card" style={{ padding: 16 }}>
-              {false && financeReport.by_month && Array.isArray(financeReport.by_month) && financeReport.by_month.length > 0 && (
-                <div style={{ marginTop: 16 }}>
-                  <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700, marginBottom: 10 }}>{t('rpt_by_month_title')}</div>
-                  <table className="table">
-                    <thead><tr><th>{t('rpt_month_col')}</th><th style={{ textAlign: 'right' }}>{t('rpt_income_col')}</th><th style={{ textAlign: 'right' }}>{t('rpt_expected_col')}</th></tr></thead>
-                    <tbody>
-                      {financeReport.by_month.map((m, i) => (
-                        <tr key={i}>
-                          <td>{m.month || m.period}</td>
-                          <td style={{ textAlign: 'right', fontWeight: 600 }}>{fmt.format(m.income || m.total_income || m.amount || 0)} so'm</td>
-                          <td style={{ textAlign: 'right', color: 'var(--muted)' }}>{fmt.format(m.expected || 0)} so'm</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
               {financeReport.breakdown && Array.isArray(financeReport.breakdown) && financeReport.breakdown.length > 0 && (
                 <div>
                   <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700, marginBottom: 10 }}>{t('rpt_by_source_title')}</div>
@@ -352,18 +331,20 @@ export function ReportsScreen() {
               {financeReport.by_month && Array.isArray(financeReport.by_month) && financeReport.by_month.length > 0 && (
                 <div style={{ marginTop: 16 }}>
                   <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700, marginBottom: 10 }}>{t('rpt_by_month_title')}</div>
-                  <table className="table">
-                    <thead><tr><th>{t('rpt_month_col')}</th><th style={{ textAlign: 'right' }}>{t('rpt_income_col')}</th><th style={{ textAlign: 'right' }}>{t('rpt_expected_col')}</th></tr></thead>
-                    <tbody>
-                      {financeReport.by_month.map((m, i) => (
-                        <tr key={i}>
-                          <td>{m.month || m.period}</td>
-                          <td style={{ textAlign: 'right', fontWeight: 600 }}>{fmt.format(m.income || m.total_income || m.amount || 0)} so'm</td>
-                          <td style={{ textAlign: 'right', color: 'var(--muted)' }}>{fmt.format(m.expected || 0)} so'm</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <div className="report-table-scroll">
+                    <table className="table compact-report-table">
+                      <thead><tr><th>{t('rpt_month_col')}</th><th style={{ textAlign: 'right' }}>{t('rpt_income_col')}</th><th style={{ textAlign: 'right' }}>{t('rpt_expected_col')}</th></tr></thead>
+                      <tbody>
+                        {financeReport.by_month.map((m, i) => (
+                          <tr key={i}>
+                            <td>{m.month || m.period}</td>
+                            <td style={{ textAlign: 'right', fontWeight: 600 }}>{fmt.format(m.income || m.total_income || m.amount || 0)} so'm</td>
+                            <td style={{ textAlign: 'right', color: 'var(--muted)' }}>{fmt.format(m.expected || 0)} so'm</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </div>
@@ -379,15 +360,15 @@ export function ReportsScreen() {
           {attendanceGroups.length === 0 ? (
             <div className="empty" style={{ padding: 18 }}>{t('rpt_att_not_found')}</div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+            <div className="grid-cards" style={{ gap: 12 }}>
               {attendanceGroups.map((g) => (
-                <div key={g.group_id || g.id} style={{ padding: 12, background: 'var(--surface-2)', borderRadius: 10, border: '1px solid var(--border)' }}>
-                  <div style={{ fontWeight: 700, marginBottom: 6 }}>{g.group_name}</div>
+                <div key={g.group_id || g.id} style={{ padding: 12, background: 'var(--surface-2)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{g.group_name}</div>
                   <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8 }}>
                     {g.total_sessions} {t('nav_sessions').toLowerCase()} · {g.total_students} {t('nav_students').toLowerCase()}
                   </div>
-                  <div style={{ height: 8, background: 'var(--border)', borderRadius: 99, overflow: 'hidden' }}>
-                    <div style={{ width: `${g.attendance_percentage || g.attendance_rate || 0}%`, height: '100%', background: 'var(--navy-ink)' }} />
+                  <div className="progress">
+                    <span style={{ width: `${g.attendance_percentage || g.attendance_rate || 0}%` }} />
                   </div>
                   <div style={{ fontSize: 12.5, marginTop: 6, fontWeight: 700 }}>{g.attendance_percentage || g.attendance_rate || 0}%</div>
                 </div>
@@ -436,7 +417,7 @@ export function ReportsScreen() {
                           {(!d.overdue_months || d.overdue_months.length === 0) && <span style={{ color: 'var(--muted)', fontSize: 12 }}>—</span>}
                         </div>
                       </td>
-                      <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--brand-red)', fontVariantNumeric: 'tabular-nums' }}>
+                      <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--danger)', fontVariantNumeric: 'tabular-nums' }}>
                         {fmt.format(d.debt_amount || Math.abs(d.debt || d.balance || 0))} so'm
                       </td>
                     </tr>

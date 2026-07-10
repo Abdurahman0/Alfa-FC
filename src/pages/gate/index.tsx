@@ -70,7 +70,7 @@ import {
   apiGetAuditLogs,
 } from '@/shared/api';
 
-import { fmt } from '@/shared/lib/format';
+import { fmt, fmtDateTime } from '@/shared/lib/format';
 import { Stat } from '@/shared/ui/stat';
 
 export function GateLogsScreen() {
@@ -131,18 +131,18 @@ export function GateLogsScreen() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 14 }}>
+      <div className="grid-3" style={{ gap: 12, marginBottom: 14 }}>
         <Stat label={t('gate_allowed_chip')} value={allowedCount} tone="success" icon={I.LogIn} />
         <Stat label={t('gate_denied_chip')} value={deniedCount} tone="danger" icon={I.ShieldOff} />
         <Stat label={t('gate_total_page_label')} value={meta.total} icon={I.Users} />
       </div>
 
-      {error && <div style={{ marginBottom: 12, padding: '10px 14px', background: 'var(--accent-soft)', borderRadius: 8, fontSize: 13, color: 'var(--brand-red)' }}>{error}</div>}
+      {error && <div style={{ marginBottom: 12, padding: '10px 14px', background: 'var(--danger-soft)', borderRadius: 8, fontSize: 13, color: 'var(--danger)' }}>{error}</div>}
 
       {loading ? (
         <div className="empty" style={{ padding: 48 }}>{t('loading')}</div>
       ) : (
-        <div className="card" style={{ overflow: 'hidden' }}>
+        <div className="table-wrap">
           <table className="table">
             <thead>
               <tr><th>{t('gate_student_col')}</th><th>{t('gate_status_col')}</th><th>{t('gate_reason_col')}</th><th>{t('gate_col_time')}</th></tr>
@@ -155,7 +155,7 @@ export function GateLogsScreen() {
                 <tr key={l.id || idx}>
                   <td>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <div style={{ width: 32, height: 32, borderRadius: 8, background: l.allowed !== false ? 'var(--success-soft)' : 'var(--accent-soft)', color: l.allowed !== false ? 'var(--success)' : 'var(--brand-red)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 8, background: l.allowed !== false ? 'var(--success-soft)' : 'var(--danger-soft)', color: l.allowed !== false ? 'var(--success)' : 'var(--danger)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
                         {l.allowed !== false ? <I.LogIn size={14} /> : <I.ShieldOff size={14} />}
                       </div>
                       <span style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{t('gate_col_student')} #{l.student_id || '—'}</span>
@@ -168,7 +168,7 @@ export function GateLogsScreen() {
                   </td>
                   <td style={{ color: 'var(--muted)', fontSize: 12.5 }}>{l.reason || '—'}</td>
                   <td style={{ fontSize: 12, color: 'var(--text-2)', fontVariantNumeric: 'tabular-nums' }}>
-                    {(l.gate_timestamp || l.created_at || '').replace('T', ' ').slice(0, 19)}
+                    {fmtDateTime(l.gate_timestamp || l.created_at)}
                   </td>
                 </tr>
               ))}

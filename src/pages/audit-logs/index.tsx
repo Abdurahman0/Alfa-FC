@@ -70,8 +70,9 @@ import {
   apiGetAuditLogs,
 } from '@/shared/api';
 
-import { fmt } from '@/shared/lib/format';
+import { fmt, fmtDateTime } from '@/shared/lib/format';
 import { Stat } from '@/shared/ui/stat';
+import { Modal, DetailGrid } from '@/shared/ui/modal';
 
 export function AuditLogsScreen() {
   const I = Icon;
@@ -212,8 +213,8 @@ export function AuditLogsScreen() {
                 <tr><td colSpan={6} style={{ padding: 18, color: 'var(--muted)' }}>{loadError || t('audit_not_found')}</td></tr>
               )}
               {rows.map(r => (
-                <tr key={r.id} style={{ cursor: 'pointer' }} onClick={() => setDetail(r)}>
-                  <td style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', fontSize: 12.5 }}>{(r.created_at || '').slice(0, 19).replace('T', ' ')}</td>
+                <tr key={r.id} className={detail?.id === r.id ? 'selected' : undefined} style={{ cursor: 'pointer' }} onClick={() => setDetail(r)}>
+                  <td style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', fontSize: 12.5 }}>{fmtDateTime(r.created_at)}</td>
                   <td style={{ fontSize: 13 }}>{r.user_full_name || `#${r.user_id || '—'}`}</td>
                   <td>{actionChip(r.action)}</td>
                   <td><span className="chip">{r.entity_type || '—'}</span></td>
@@ -236,41 +237,28 @@ export function AuditLogsScreen() {
 
       {/* Detail modal */}
       {detail && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', display: 'grid', placeItems: 'center', zIndex: 140 }} onClick={() => setDetail(null)}>
-          <div className="card" style={{ width: 560, padding: 18 }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <h3 style={{ margin: 0 }}>{t('audit_title')} #{detail.id}</h3>
-              <button className="icon-btn" style={{ width: 30, height: 30 }} onClick={() => setDetail(null)}><I.X size={15} /></button>
+        <Modal onClose={() => setDetail(null)} title={`${t('audit_title')} #${detail.id}`} size="lg">
+          <DetailGrid items={[
+            { label: t('audit_detail_date'), value: fmtDateTime(detail.created_at) },
+            { label: t('audit_detail_user'), value: detail.user_full_name || `#${detail.user_id}` },
+            { label: t('audit_detail_action'), value: actionChip(detail.action) },
+            { label: t('audit_detail_entity_type'), value: detail.entity_type },
+            { label: t('audit_detail_entity_id'), value: detail.entity_id },
+            { label: t('audit_detail_entity_name'), value: detail.entity_label },
+          ]} />
+          {detail.description && (
+            <div className="detail-item" style={{ marginTop: 10 }}>
+              <div className="label">{t('audit_detail_desc')}</div>
+              <div className="value" style={{ fontWeight: 500 }}>{detail.description}</div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              {[
-                [t('audit_detail_date'), (detail.created_at || '').slice(0, 19).replace('T', ' ')],
-                [t('audit_detail_user'), detail.user_full_name || `#${detail.user_id}`],
-                [t('audit_detail_action'), detail.action],
-                [t('audit_detail_entity_type'), detail.entity_type],
-                [t('audit_detail_entity_id'), detail.entity_id],
-                [t('audit_detail_entity_name'), detail.entity_label],
-              ].map(([k, v]) => (
-                <div key={k}>
-                  <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 700, marginBottom: 4 }}>{k}</div>
-                  <div style={{ fontSize: 13.5 }}>{v || '—'}</div>
-                </div>
-              ))}
+          )}
+          {detail.extra && (
+            <div style={{ marginTop: 10 }}>
+              <div style={{ fontSize: 10.5, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, marginBottom: 6 }}>{t('audit_detail_extra')}</div>
+              <pre style={{ fontSize: 12, background: 'var(--surface-2)', border: '1px solid var(--border)', padding: 10, borderRadius: 'var(--radius-sm)', overflowX: 'auto', margin: 0 }}>{typeof detail.extra === 'string' ? detail.extra : JSON.stringify(detail.extra, null, 2)}</pre>
             </div>
-            {detail.description && (
-              <div style={{ marginTop: 12 }}>
-                <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 700, marginBottom: 4 }}>{t('audit_detail_desc')}</div>
-                <div style={{ fontSize: 13.5 }}>{detail.description}</div>
-              </div>
-            )}
-            {detail.extra && (
-              <div style={{ marginTop: 12 }}>
-                <div style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 700, marginBottom: 6 }}>{t('audit_detail_extra')}</div>
-                <pre style={{ fontSize: 12, background: 'var(--bg)', padding: 10, borderRadius: 8, overflowX: 'auto', margin: 0 }}>{typeof detail.extra === 'string' ? detail.extra : JSON.stringify(detail.extra, null, 2)}</pre>
-              </div>
-            )}
-          </div>
-        </div>
+          )}
+        </Modal>
       )}
     </div>
   );

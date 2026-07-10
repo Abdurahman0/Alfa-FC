@@ -2,6 +2,10 @@
 // Site appearance (accent color + background tint), persisted in localStorage.
 // Applied by injecting a <style> tag so each value can differ per theme —
 // a plain inline root style could not override [data-theme="dark"] tokens.
+//
+// Only --accent / --accent-contrast / --bg-base are injected; every other
+// accent-ish token (--accent-soft, --primary, --ring, nav, tabs, selection…)
+// derives from them in index.css via color-mix, so one swap re-skins the app.
 
 const KEY = 'alpha_appearance';
 
@@ -24,14 +28,41 @@ function hexToRgb(hex) {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
+function rgbToHex([r, g, b]) {
+  return '#' + [r, g, b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+}
+
 export function withAlpha(hex, a) {
   const [r, g, b] = hexToRgb(hex);
   return `rgba(${r}, ${g}, ${b}, ${a})`;
 }
 
-function shade(hex, f) {
-  const [r, g, b] = hexToRgb(hex).map(v => Math.max(0, Math.min(255, Math.round(v * f))));
-  return `rgb(${r}, ${g}, ${b})`;
+function mix(hexA, hexB, t) {
+  const a = hexToRgb(hexA), b = hexToRgb(hexB);
+  return rgbToHex(a.map((v, i) => v + (b[i] - v) * t));
+}
+
+// WCAG-ish relative luminance, 0 (black) → 1 (white)
+function luminance(hex) {
+  const [r, g, b] = hexToRgb(hex).map(v => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+// White or near-black text on top of the accent
+function contrastOn(hex) {
+  return luminance(hex) > 0.45 ? '#131A2C' : '#FFFFFF';
+}
+
+// Dark surfaces swallow very dark accents (e.g. navy) — lift them toward
+// white until they read clearly, leave already-bright accents untouched.
+function accentForDark(hex) {
+  const lum = luminance(hex);
+  if (lum >= 0.28) return hex;
+  const t = Math.min(0.55, (0.28 - lum) * 2.2 + 0.18);
+  return mix(hex, '#FFFFFF', t);
 }
 
 export function loadAppearance() {
@@ -55,7 +86,7 @@ export function isDefaultAppearance(a) {
 export function applyAppearance(a = loadAppearance()) {
   let el = document.getElementById('alpha-appearance');
   if (isDefaultAppearance(a)) {
-    if (el) el.remove();
+    if (el) el.remove(); // CSS defaults already match
     return;
   }
   if (!el) {
@@ -65,20 +96,17 @@ export function applyAppearance(a = loadAppearance()) {
   }
   const bg = BACKGROUNDS.find(b => b.id === a.bg) || BACKGROUNDS[0];
   const acc = a.accent || DEFAULT_APPEARANCE.accent;
+  const accDark = accentForDark(acc);
   el.textContent = `
 :root {
   --accent: ${acc};
-  --accent-soft: ${withAlpha(acc, 0.12)};
-  --primary: ${shade(acc, 0.82)};
-  --primary-hover: ${shade(acc, 1.0)};
-  --ring: 0 0 0 3px ${withAlpha(acc, 0.22)};
-  --bg: ${bg.light};
+  --accent-contrast: ${contrastOn(acc)};
+  --bg-base: ${bg.light};
 }
 [data-theme="dark"] {
-  --accent-soft: ${withAlpha(acc, 0.2)};
-  --primary: ${shade(acc, 0.9)};
-  --primary-hover: ${shade(acc, 1.1)};
-  --bg: ${bg.dark};
+  --accent: ${accDark};
+  --accent-contrast: ${contrastOn(accDark)};
+  --bg-base: ${bg.dark};
 }
 `;
 }

@@ -70,8 +70,9 @@ import {
   apiGetAuditLogs,
 } from '@/shared/api';
 
-import { fmt } from '@/shared/lib/format';
+import { fmt, fmtDate } from '@/shared/lib/format';
 import { Stat } from '@/shared/ui/stat';
+import { Modal } from '@/shared/ui/modal';
 
 import { statusChip } from './status-chip';
 
@@ -188,15 +189,14 @@ export function ContractsScreen({ onOpenContract, onNavigateToStudent, onToast }
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+      <div className="seg" style={{ marginBottom: 12 }}>
         {[
           { key: 'active', labelKey: 'status_active' },
           { key: 'terminated', labelKey: 'status_terminated' },
         ].map(tb => (
           <button
             key={tb.key}
-            className={`btn${tab === tb.key ? ' primary' : ' ghost'}`}
-            style={{ fontSize: 13 }}
+            className={tab === tb.key ? 'active' : ''}
             onClick={() => { setPage(1); setTab(tb.key); }}
           >
             {t(tb.labelKey)}
@@ -251,13 +251,13 @@ export function ContractsScreen({ onOpenContract, onNavigateToStudent, onToast }
                     {c.customer_full_name ?? c.custom_fields?.customer?.full_name ?? '—'}
                   </td>
                   <td style={{ fontVariantNumeric: 'tabular-nums', fontSize: 12.5 }}>
-                    {c.contract_start_date ?? c.start_date ?? '—'} <span style={{ color: 'var(--muted)' }}>→</span> {c.contract_end_date ?? c.end_date ?? '—'}
+                    {fmtDate(c.contract_start_date ?? c.start_date)} <span style={{ color: 'var(--muted)' }}>→</span> {fmtDate(c.contract_end_date ?? c.end_date)}
                   </td>
                   <td style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{fmt.format(c.monthly_fee_amount ?? c.monthly_fee ?? 0)} so'm</td>
                   <td>{statusChip(c.status, t)}</td>
                   <td onClick={e => e.stopPropagation()}>
                     {c.status === 'ACTIVE' && (
-                      <button className="btn ghost sm" style={{ color: 'var(--brand-red)', fontSize: 12 }} onClick={() => openTerminate(c)}>
+                      <button className="btn ghost sm danger-ghost" onClick={() => openTerminate(c)}>
                         <I.XCircle size={13} /> {t('contracts_terminate')}
                       </button>
                     )}
@@ -288,29 +288,27 @@ export function ContractsScreen({ onOpenContract, onNavigateToStudent, onToast }
       </div>
 
       {terminateModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', display: 'grid', placeItems: 'center', zIndex: 140 }} onClick={() => setTerminateModal(false)}>
-          <div className="card" style={{ width: 440, padding: 18 }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <h3 style={{ margin: 0 }}>{t('contracts_terminate_title')}</h3>
-              <button className="icon-btn" style={{ width: 30, height: 30 }} onClick={() => setTerminateModal(false)}><I.X size={15} /></button>
-            </div>
-            <div style={{ marginBottom: 8, fontSize: 13, color: 'var(--muted)' }}>{t('nav_contracts')}: <strong>{terminating?.contract_number}</strong></div>
-            <div className="field" style={{ marginBottom: 12 }}>
-              <label>{t('transactions_comment')} *</label>
-              <textarea rows={3} value={terminateReason} onChange={e => setTerminateReason(e.target.value)} placeholder="" />
-            </div>
-            <div className="field" style={{ marginBottom: 14 }}>
-              <label>{t('contracts_terminated_at')} *</label>
-              <input type="datetime-local" value={terminateAt} onChange={e => setTerminateAt(e.target.value)} />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <button className="btn ghost" onClick={() => setTerminateModal(false)}>{t('cancel')}</button>
-              <button className="btn" style={{ background: 'var(--brand-red)', color: '#fff', border: 'none' }} onClick={confirmTerminate} disabled={!terminateReason.trim()}>
-                <I.XCircle size={14} /> {t('contracts_terminate')}
-              </button>
-            </div>
+        <Modal
+          size="sm"
+          onClose={() => setTerminateModal(false)}
+          title={t('contracts_terminate_title')}
+          subtitle={<>{t('nav_contracts')}: <strong>{terminating?.contract_number}</strong></>}
+          footer={<>
+            <button className="btn ghost" onClick={() => setTerminateModal(false)}>{t('cancel')}</button>
+            <button className="btn danger" onClick={confirmTerminate} disabled={!terminateReason.trim()}>
+              <I.XCircle size={14} /> {t('contracts_terminate')}
+            </button>
+          </>}
+        >
+          <div className="field" style={{ marginBottom: 12 }}>
+            <label>{t('transactions_comment')} *</label>
+            <textarea rows={3} value={terminateReason} onChange={e => setTerminateReason(e.target.value)} placeholder="" />
           </div>
-        </div>
+          <div className="field">
+            <label>{t('contracts_terminated_at')} *</label>
+            <input type="datetime-local" value={terminateAt} onChange={e => setTerminateAt(e.target.value)} />
+          </div>
+        </Modal>
       )}
     </div>
   );

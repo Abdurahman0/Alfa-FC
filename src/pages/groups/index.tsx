@@ -12,6 +12,7 @@ import {
 } from '@/shared/api';
 import { useCoachGroupsQuery, useGroupPerformanceTableQuery } from '@/features/performance-table/model/use-performance-table';
 import { SearchableGroupSelect, SearchableSelect } from '@/shared/ui/controls';
+import { Modal, DetailGrid } from '@/shared/ui/modal';
 import { useT } from '@/shared/i18n/lang';
 import { avatarColor } from '@/shared/lib/avatar';
 
@@ -222,7 +223,7 @@ export function GroupsScreen({ onOpen, selectedGroupId = null, onCloseGroup, onT
         </div>
         <div className="page-actions">
           {selectedIds.length > 0 && (
-            <button className="btn ghost" style={{ color: 'var(--brand-red)', borderColor: 'var(--brand-red)' }} onClick={handleBulkDelete} disabled={bulkDeleting}>
+            <button className="btn ghost danger-ghost" onClick={handleBulkDelete} disabled={bulkDeleting}>
               <I.Trash size={14}/> {bulkDeleting ? t('deleting') : `${selectedIds.length} ${t('delete')}`}
             </button>
           )}
@@ -230,9 +231,9 @@ export function GroupsScreen({ onOpen, selectedGroupId = null, onCloseGroup, onT
             <input type="checkbox" checked={includeArchived} onChange={e => setIncludeArchived(e.target.checked)} />
             {t('groups_archived')}
           </label>
-          <div style={{ display: 'inline-flex', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 2 }}>
-            <button className={'btn sm ' + (view === 'cards' ? '' : 'ghost')} style={{ height: 30, border: 'none', background: view === 'cards' ? 'var(--selected)' : 'transparent' }} onClick={() => setView('cards')}>{t('groups_cards')}</button>
-            <button className={'btn sm ' + (view === 'list' ? '' : 'ghost')} style={{ height: 30, border: 'none', background: view === 'list' ? 'var(--selected)' : 'transparent' }} onClick={() => setView('list')}>{t('groups_list')}</button>
+          <div className="seg">
+            <button className={view === 'cards' ? 'active' : ''} onClick={() => setView('cards')}>{t('groups_cards')}</button>
+            <button className={view === 'list' ? 'active' : ''} onClick={() => setView('list')}>{t('groups_list')}</button>
           </div>
           <button className="btn primary" onClick={() => setShowNew(true)}><I.Plus size={15}/> {t('groups_new')}</button>
         </div>
@@ -240,39 +241,37 @@ export function GroupsScreen({ onOpen, selectedGroupId = null, onCloseGroup, onT
 
       {/* Group detail modal */}
       {selectedGroup && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 130, display: 'grid', placeItems: 'center', background: 'var(--overlay)' }} onClick={() => onCloseGroup?.()}>
-          <div className="card" style={{ position: 'relative', width: 640, maxWidth: '92vw', maxHeight: '85vh', overflowY: 'auto', borderRadius: 16, padding: 24, boxShadow: '0 24px 64px rgba(0,0,0,0.28)', display: 'flex', flexDirection: 'column', gap: 20 }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
-                  <span className="chip success"><span className="chip-dot"></span>{t('groups_active')}</span>
-                  <span className="chip navy">{groupStudents.length} {t('groups_students_count')}</span>
-                </div>
-                <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>{selectedGroup.name}</h2>
-                <div style={{ marginTop: 4, color: 'var(--muted)', fontSize: 13 }}>{selectedGroup.description || t('groups_no_desc')}</div>
-              </div>
-              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                <button className="btn ghost sm" onClick={() => { onCloseGroup?.(); openEdit(selectedGroup); }}>
-                  <I.Edit size={13}/> {t('edit')}
-                </button>
-                <button className="btn ghost sm" onClick={() => handleExport(selectedGroup.id)}>
-                  <I.Download size={13}/> {t('export')}
-                </button>
-                <button className="icon-btn" style={{ width: 32, height: 32 }} onClick={() => onCloseGroup?.()}>
-                  <I.X size={16}/>
-                </button>
-              </div>
+        <Modal
+          onClose={() => onCloseGroup?.()}
+          size="lg"
+          title={selectedGroup.name}
+          subtitle={selectedGroup.description || t('groups_no_desc')}
+          headerExtra={
+            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+              <button className="btn ghost sm" onClick={() => { onCloseGroup?.(); openEdit(selectedGroup); }}>
+                <I.Edit size={13}/> {t('edit')}
+              </button>
+              <button className="btn ghost sm" onClick={() => handleExport(selectedGroup.id)}>
+                <I.Download size={13}/> {t('export')}
+              </button>
+            </div>
+          }
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <span className="chip success"><span className="chip-dot"></span>{t('groups_active')}</span>
+              <span className="chip navy">{groupStudents.length} {t('groups_students_count')}</span>
             </div>
 
             {groupLoading ? (
               <div className="empty" style={{ padding: 20 }}>{t('loading')}</div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
-                <StatCard label={t('groups_coach_label2')} value={selectedGroup.coach_name || coachMap[selectedGroup.coach_id] || '—'} />
-                <StatCard label={t('groups_capacity')} value={selectedGroup.capacity ?? '—'} />
-                <StatCard label={t('groups_active_students')} value={selectedGroup.active_students_count ?? groupStudents.filter(s => s.status === 'active').length} />
-                <StatCard label={t('groups_waiting_list')} value={selectedGroup.waiting_list_count ?? '—'} />
-              </div>
+              <DetailGrid items={[
+                { label: t('groups_coach_label2'), value: selectedGroup.coach_name || coachMap[selectedGroup.coach_id] || '—' },
+                { label: t('groups_capacity'), value: selectedGroup.capacity ?? '—' },
+                { label: t('groups_active_students'), value: selectedGroup.active_students_count ?? groupStudents.filter(s => s.status === 'active').length },
+                { label: t('groups_waiting_list'), value: selectedGroup.waiting_list_count ?? '—' },
+              ]}/>
             )}
 
             <div>
@@ -280,12 +279,12 @@ export function GroupsScreen({ onOpen, selectedGroupId = null, onCloseGroup, onT
               {groupStudents.length === 0 ? (
                 <div className="empty" style={{ padding: 20 }}>{t('groups_no_students')}</div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div className="list-stack">
                   {groupStudents.map((s) => (
-                    <div key={s.id} style={{ padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 10, display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <div key={s.id} className="list-row">
                       <div className="avatar sm" style={{ background: avatarColor(s.id) }}>{s.first_name?.[0]}{s.last_name?.[0]}</div>
                       <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontSize: 13.5, fontWeight: 600 }}>{s.first_name} {s.last_name}</div>
+                        <div style={{ fontSize: 13.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.first_name} {s.last_name}</div>
                         <div style={{ fontSize: 11.5, color: 'var(--muted)' }}>{s.phone || t('groups_no_phone')}</div>
                       </div>
                       <span className={'chip' + (s.status === 'active' ? ' success' : '')} style={{ fontSize: 11 }}>
@@ -297,12 +296,12 @@ export function GroupsScreen({ onOpen, selectedGroupId = null, onCloseGroup, onT
               )}
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* Cards view */}
       {view === 'cards' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
+        <div className="grid-cards">
           {groups.map(g => {
             const coachName = coachMap[g.coach_id] || '—';
             const count = g.active_students_count ?? 0;
@@ -335,7 +334,7 @@ export function GroupsScreen({ onOpen, selectedGroupId = null, onCloseGroup, onT
                   <div style={{ display: 'flex', gap: 4 }}>
                     <button className="icon-btn" style={{ width: 28, height: 28 }} title={t('btn_edit')} onClick={() => openEdit(g)}><I.Edit size={13}/></button>
                     <button className="icon-btn" style={{ width: 28, height: 28 }} title="Export" onClick={() => handleExport(g.id)}><I.Download size={13}/></button>
-                    <button className="icon-btn" style={{ width: 28, height: 28, color: 'var(--brand-red)' }} title={t('btn_delete')} onClick={() => handleDeleteGroup(g)}><I.Trash size={13}/></button>
+                    <button className="icon-btn danger" style={{ width: 28, height: 28 }} title={t('btn_delete')} onClick={() => handleDeleteGroup(g)}><I.Trash size={13}/></button>
                   </div>
                 </div>
               </div>
@@ -361,7 +360,7 @@ export function GroupsScreen({ onOpen, selectedGroupId = null, onCloseGroup, onT
                 const coachName = coachMap[g.coach_id] || '—';
                 const isSelected = selectedIds.includes(g.id);
                 return (
-                  <tr key={g.id} style={{ background: isSelected ? 'var(--selected)' : undefined }}>
+                  <tr key={g.id} className={isSelected ? 'selected' : undefined}>
                     <td onClick={e => e.stopPropagation()}>
                       <input type="checkbox" checked={isSelected} onChange={() => toggleSelect(g.id)} />
                     </td>
@@ -379,7 +378,7 @@ export function GroupsScreen({ onOpen, selectedGroupId = null, onCloseGroup, onT
                         setOpenMenuGroupId(g.id);
                       }}><I.More size={15}/></button>
                       {openMenuGroupId === g.id && (
-                        <div style={{ position: 'fixed', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, boxShadow: '0 10px 30px rgba(0,0,0,0.15)', zIndex: 9999, minWidth: 160, top: menuPos.y, left: menuPos.x }}>
+                        <div className="menu" style={{ position: 'fixed', top: menuPos.y, left: menuPos.x }}>
                           {[
                             { icon: 'Eye', label: t('view'), action: () => { onOpen?.(g.id); setOpenMenuGroupId(null); } },
                             { icon: 'Edit', label: t('edit'), action: () => openEdit(g) },
@@ -388,7 +387,7 @@ export function GroupsScreen({ onOpen, selectedGroupId = null, onCloseGroup, onT
                           ].map(item => {
                             const Ic = I[item.icon];
                             return (
-                              <button key={item.label} style={{ width: '100%', padding: '9px 14px', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', color: item.danger ? 'var(--brand-red)' : 'var(--text)', fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 8 }} onClick={item.action}>
+                              <button key={item.label} className={'menu-item' + (item.danger ? ' danger' : '')} onClick={item.action}>
                                 <Ic size={14}/> {item.label}
                               </button>
                             );
@@ -406,40 +405,34 @@ export function GroupsScreen({ onOpen, selectedGroupId = null, onCloseGroup, onT
 
       {/* New group modal */}
       {showNew && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 150 }}>
-          <div className="card" style={{ width: 460, padding: 24, boxShadow: 'var(--shadow-lg)' }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{t('groups_new_title')}</h3>
-              <button className="icon-btn" style={{ width: 32, height: 32 }} onClick={() => setShowNew(false)}><I.X size={16}/></button>
-            </div>
-            <GroupFormFields form={newGroup} setForm={setNewGroup} coaches={coaches} />
-            <div style={{ display: 'flex', gap: 8, marginTop: 20, justifyContent: 'flex-end' }}>
-              <button className="btn ghost" onClick={() => setShowNew(false)}>{t('cancel')}</button>
-              <button className="btn primary" onClick={handleCreateGroup} disabled={saving}>
-                <I.Check size={14}/> {saving ? t('saving') : t('add')}
-              </button>
-            </div>
-          </div>
-        </div>
+        <Modal
+          onClose={() => setShowNew(false)}
+          title={t('groups_new_title')}
+          footer={<>
+            <button className="btn ghost" onClick={() => setShowNew(false)}>{t('cancel')}</button>
+            <button className="btn primary" onClick={handleCreateGroup} disabled={saving}>
+              <I.Check size={14}/> {saving ? t('saving') : t('add')}
+            </button>
+          </>}
+        >
+          <GroupFormFields form={newGroup} setForm={setNewGroup} coaches={coaches} />
+        </Modal>
       )}
 
       {/* Edit group modal */}
       {editingGroup && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 150 }}>
-          <div className="card" style={{ width: 460, padding: 24, boxShadow: 'var(--shadow-lg)' }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{t('groups_edit_title')}</h3>
-              <button className="icon-btn" style={{ width: 32, height: 32 }} onClick={() => setEditingGroup(null)}><I.X size={16}/></button>
-            </div>
-            <GroupFormFields form={editForm} setForm={setEditForm} coaches={coaches} />
-            <div style={{ display: 'flex', gap: 8, marginTop: 20, justifyContent: 'flex-end' }}>
-              <button className="btn ghost" onClick={() => setEditingGroup(null)}>{t('cancel')}</button>
-              <button className="btn primary" onClick={handleEditGroup} disabled={saving}>
-                <I.Check size={14}/> {saving ? t('saving') : t('save')}
-              </button>
-            </div>
-          </div>
-        </div>
+        <Modal
+          onClose={() => setEditingGroup(null)}
+          title={t('groups_edit_title')}
+          footer={<>
+            <button className="btn ghost" onClick={() => setEditingGroup(null)}>{t('cancel')}</button>
+            <button className="btn primary" onClick={handleEditGroup} disabled={saving}>
+              <I.Check size={14}/> {saving ? t('saving') : t('save')}
+            </button>
+          </>}
+        >
+          <GroupFormFields form={editForm} setForm={setEditForm} coaches={coaches} />
+        </Modal>
       )}
     </div>
   );

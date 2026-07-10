@@ -11,6 +11,7 @@ import {
   apiChangeStudentGroup,
 } from '@/shared/api';
 import { SearchableGroupSelect, SearchableSelect } from '@/shared/ui/controls';
+import { Modal } from '@/shared/ui/modal';
 import { useT } from '@/shared/i18n/lang';
 import { avatarColor } from '@/shared/lib/avatar';
 import { calcAge, fullName, normalizeStatus } from './lib';
@@ -39,6 +40,13 @@ export function StudentNew({ onBack, onCreated, onViewContract }) {
   const [files, setFiles] = React.useState({ photo: null, passport: null, extra_file: null });
 
   function setF(field, value) { setForm(p => ({ ...p, [field]: value })); }
+
+  // A step only earns its tick when every required field in it is filled
+  const stepValid = {
+    1: !!(form.first_name.trim() && form.last_name.trim() && form.date_of_birth && form.height && form.weight && form.pnfl.trim()),
+    2: !!(form.customer_full_name.trim() && form.customer_passport_number.trim() && form.customer_address.trim() && form.monthly_fee_amount),
+    3: true,
+  };
 
   React.useEffect(() => {
     apiGetGroups({ page_size: 100 }).then(res => setGroups(res?.data || [])).catch(() => {});
@@ -96,11 +104,12 @@ export function StudentNew({ onBack, onCreated, onViewContract }) {
         {steps.map((label, i) => {
           const n = i + 1;
           const active = step === n;
-          const done = step > n;
+          const done = step > n && stepValid[n];
+          const incomplete = step > n && !stepValid[n];
           return (
             <div key={n} onClick={() => setStep(n)} style={{ flex: 1, padding: '10px 14px', borderRadius: 6, background: active ? 'var(--selected)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 24, height: 24, borderRadius: '50%', background: done ? 'var(--success)' : active ? 'var(--primary)' : 'var(--surface-2)', color: done || active ? 'white' : 'var(--muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>
-                {done ? <I.Check size={14}/> : n}
+              <div style={{ width: 24, height: 24, borderRadius: '50%', background: done ? 'var(--success)' : incomplete ? 'var(--warning)' : active ? 'var(--primary)' : 'var(--surface-2)', color: done || incomplete || active ? 'white' : 'var(--muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>
+                {done ? <I.Check size={14}/> : incomplete ? '!' : n}
               </div>
               <div>
                 <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 600 }}>{t('step_label')} {n}</div>
@@ -114,7 +123,7 @@ export function StudentNew({ onBack, onCreated, onViewContract }) {
       <div className="card">
         <div className="card-body" style={{ padding: 24 }}>
           {step === 1 && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
+            <div className="grid-3" style={{ gap: 14 }}>
               <div className="field"><label>{t('field_first_name')} <span className="req">*</span></label><input value={form.first_name} onChange={e => setF('first_name', e.target.value)} placeholder="Ali"/></div>
               <div className="field"><label>{t('field_last_name')} <span className="req">*</span></label><input value={form.last_name} onChange={e => setF('last_name', e.target.value)} placeholder="Karimov"/></div>
               <div className="field"><label>{t('field_birth_date')} <span className="req">*</span></label><input type="date" value={form.date_of_birth} onChange={e => setF('date_of_birth', e.target.value)}/></div>
@@ -130,15 +139,15 @@ export function StudentNew({ onBack, onCreated, onViewContract }) {
                 />
               </div>
               <div className="field"><label>{t('field_nationality')}</label><input value={form.millati} onChange={e => setF('millati', e.target.value)} placeholder="O'zbek"/></div>
-              <div className="field" style={{ gridColumn: 'span 2' }}><label>{t('field_address')}</label><input value={form.address} onChange={e => setF('address', e.target.value)} placeholder="Toshkent sh., Chilonzor t."/></div>
+              <div className="field col-span-2"><label>{t('field_address')}</label><input value={form.address} onChange={e => setF('address', e.target.value)} placeholder="Toshkent sh., Chilonzor t."/></div>
               <div className="field"><label>{t('field_group2')}</label>
                 <SearchableGroupSelect value={form.group_id} onChange={v => setF('group_id', v)} groups={groups} placeholder="Tanlanmagan" />
               </div>
             </div>
           )}
           {step === 2 && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-              <div className="field" style={{ gridColumn: 'span 2' }}><label>{t('field_customer_name')} <span className="req">*</span></label><input value={form.customer_full_name} onChange={e => setF('customer_full_name', e.target.value)} placeholder="Karimov Ravshan Akmalovich"/></div>
+            <div className="grid-2" style={{ gap: 14 }}>
+              <div className="field col-span-2"><label>{t('field_customer_name')} <span className="req">*</span></label><input value={form.customer_full_name} onChange={e => setF('customer_full_name', e.target.value)} placeholder="Karimov Ravshan Akmalovich"/></div>
               <div className="field"><label>{t('field_passport_num')} <span className="req">*</span></label><input value={form.customer_passport_number} onChange={e => setF('customer_passport_number', e.target.value)} placeholder="AB 1234567"/></div>
               <div className="field"><label>{t('field_address')} <span className="req">*</span></label><input value={form.customer_address} onChange={e => setF('customer_address', e.target.value)} placeholder="Toshkent sh., Chilonzor t."/></div>
               <div className="field"><label>{t('field_monthly_fee')} <span className="req">*</span></label><input type="number" value={form.monthly_fee_amount} onChange={e => setF('monthly_fee_amount', e.target.value)} placeholder="500000"/></div>
@@ -148,7 +157,8 @@ export function StudentNew({ onBack, onCreated, onViewContract }) {
             </div>
           )}
           {step === 3 && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
+            <div>
+            <div className="grid-3" style={{ gap: 14 }}>
               {[
                 { key: 'photo', label: t('file_photo_label'), desc: t('file_photo_desc'), icon: 'Camera' },
                 { key: 'passport', label: t('file_passport_label'), desc: t('file_passport_desc'), icon: 'File' },
@@ -167,18 +177,19 @@ export function StudentNew({ onBack, onCreated, onViewContract }) {
                   </div>
                 );
               })}
-              <div style={{ gridColumn: 'span 3', padding: 14, background: 'var(--success-soft)', color: 'var(--success)', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
-                <I.Check size={18}/>
-                <div>
-                  <div style={{ fontWeight: 600 }}>{t('new_student_ready_title')}</div>
-                  <div style={{ opacity: 0.85 }}>{t('new_student_ready_desc')}</div>
-                </div>
+            </div>
+            <div style={{ marginTop: 14, padding: 14, background: 'var(--success-soft)', color: 'var(--success)', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
+              <I.Check size={18}/>
+              <div>
+                <div style={{ fontWeight: 600 }}>{t('new_student_ready_title')}</div>
+                <div style={{ opacity: 0.85 }}>{t('new_student_ready_desc')}</div>
               </div>
+            </div>
             </div>
           )}
 
           {error && (
-            <div style={{ marginTop: 14, padding: '10px 14px', background: 'var(--accent-soft)', border: '1px solid var(--brand-red)', borderRadius: 8, fontSize: 13, color: 'var(--brand-red)' }}>
+            <div style={{ marginTop: 14, padding: '10px 14px', background: 'var(--danger-soft)', border: '1px solid var(--danger)', borderRadius: 8, fontSize: 13, color: 'var(--danger)' }}>
               {error}
             </div>
           )}
@@ -198,8 +209,30 @@ export function StudentNew({ onBack, onCreated, onViewContract }) {
       </div>
 
       {showSuccessCard && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 300, padding: 16 }}>
-          <div style={{ background: 'var(--surface)', borderRadius: 16, boxShadow: '0 24px 64px rgba(0,0,0,0.22)', padding: '40px 36px', maxWidth: 420, width: '100%', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18 }}>
+        <Modal size="sm" footer={<>
+          <button className="btn ghost" onClick={() => onCreated?.()}>
+            {t('back_to_students')}
+          </button>
+          {createdContractId && (
+            <button className="btn primary"
+              disabled={viewingContract}
+              onClick={async () => {
+                setViewingContract(true);
+                try {
+                  const blob = await apiGetContractPdf(createdContractId);
+                  const url = URL.createObjectURL(blob);
+                  window.open(url, '_blank', 'noopener,noreferrer');
+                } catch (err) {
+                  alert(t('contract_open_error') + err.message);
+                } finally {
+                  setViewingContract(false);
+                }
+              }}>
+              <I.FileText size={15}/> {viewingContract ? t('contract_opening') : t('contract_view_btn')}
+            </button>
+          )}
+        </>}>
+          <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '14px 0' }}>
             <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--success-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <I.Check size={36} color="var(--success)"/>
             </div>
@@ -207,32 +240,8 @@ export function StudentNew({ onBack, onCreated, onViewContract }) {
               <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>{t('contract_ready_title')}</div>
               <div style={{ fontSize: 13.5, color: 'var(--muted)', lineHeight: 1.5 }}>{t('contract_ready_desc')}</div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
-              {createdContractId && (
-                <button className="btn primary" style={{ justifyContent: 'center', width: '100%', padding: '12px 0', fontSize: 14 }}
-                  disabled={viewingContract}
-                  onClick={async () => {
-                    setViewingContract(true);
-                    try {
-                      const blob = await apiGetContractPdf(createdContractId);
-                      const url = URL.createObjectURL(blob);
-                      window.open(url, '_blank', 'noopener,noreferrer');
-                    } catch (err) {
-                      alert(t('contract_open_error') + err.message);
-                    } finally {
-                      setViewingContract(false);
-                    }
-                  }}>
-                  <I.FileText size={15}/> {viewingContract ? t('contract_opening') : t('contract_view_btn')}
-                </button>
-              )}
-              <button className="btn ghost" style={{ justifyContent: 'center', width: '100%', padding: '11px 0', fontSize: 13.5 }}
-                onClick={() => onCreated?.()}>
-                {t('back_to_students')}
-              </button>
-            </div>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

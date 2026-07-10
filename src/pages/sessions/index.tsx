@@ -12,8 +12,10 @@ import {
 } from '@/shared/api';
 import { useCoachGroupsQuery, useGroupPerformanceTableQuery } from '@/features/performance-table/model/use-performance-table';
 import { SearchableGroupSelect, SearchableSelect } from '@/shared/ui/controls';
+import { Modal } from '@/shared/ui/modal';
 import { useT } from '@/shared/i18n/lang';
 import { avatarColor } from '@/shared/lib/avatar';
+import { fmtDate } from '@/shared/lib/format';
 
 function sessionStatus(session_date) {
   const today = new Date().toISOString().slice(0, 10);
@@ -22,15 +24,6 @@ function sessionStatus(session_date) {
   return 'completed';
 }
 
-
-function StatCard({ label, value }) {
-  return (
-    <div style={{ padding: 12, background: 'var(--surface-2)', borderRadius: 10, border: '1px solid var(--border)' }}>
-      <div style={{ fontSize: 11.5, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 700 }}>{label}</div>
-      <div style={{ marginTop: 6, fontSize: 14, fontWeight: 700 }}>{value}</div>
-    </div>
-  );
-}
 
 export function SessionsScreen({ onMark }) {
   const I = Icon;
@@ -268,15 +261,17 @@ export function SessionsScreen({ onMark }) {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
-        {[
-          { key: 'sessions', labelKey: 'sessions_tab_sessions' },
-          { key: 'attendances', labelKey: 'sessions_tab_attendance' },
-        ].map(tb => (
-          <button key={tb.key} className={`btn${activeTab === tb.key ? ' primary' : ' ghost'}`} style={{ fontSize: 13 }} onClick={() => setActiveTab(tb.key)}>
-            {t(tb.labelKey)}
-          </button>
-        ))}
+      <div style={{ marginBottom: 16 }}>
+        <div className="seg">
+          {[
+            { key: 'sessions', labelKey: 'sessions_tab_sessions' },
+            { key: 'attendances', labelKey: 'sessions_tab_attendance' },
+          ].map(tb => (
+            <button key={tb.key} className={activeTab === tb.key ? 'active' : ''} onClick={() => setActiveTab(tb.key)}>
+              {t(tb.labelKey)}
+            </button>
+          ))}
+        </div>
       </div>
 
       {activeTab === 'attendances' && (
@@ -308,7 +303,7 @@ export function SessionsScreen({ onMark }) {
                         {!['present','absent','late'].includes(a.status) && <span className="chip">{a.status}</span>}
                       </td>
                       <td style={{ color: 'var(--muted)', fontSize: 12.5 }}>{a.comment || '—'}</td>
-                      <td style={{ fontVariantNumeric: 'tabular-nums', fontSize: 12.5, color: 'var(--muted)' }}>{(a.created_at || '').slice(0, 10)}</td>
+                      <td style={{ fontVariantNumeric: 'tabular-nums', fontSize: 12.5, color: 'var(--muted)' }}>{fmtDate(a.created_at)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -336,7 +331,7 @@ export function SessionsScreen({ onMark }) {
                 style={{
                   padding: 12,
                   borderRadius: 10,
-                  border: isSelected ? '1px solid var(--brand-red)' : '1px solid transparent',
+                  border: isSelected ? '1px solid var(--accent)' : '1px solid transparent',
                   background: isSelected ? 'var(--selected)' : isToday ? 'var(--primary)' : 'var(--surface-2)',
                   color: isSelected ? 'var(--text)' : isToday ? 'white' : 'var(--text)',
                   cursor: 'pointer',
@@ -378,7 +373,7 @@ export function SessionsScreen({ onMark }) {
             )}
             {list.slice(0, 20).map(s => (
               <tr key={s.id} onClick={() => onMark(s.id)}>
-                <td style={{ fontVariantNumeric: 'tabular-nums' }}>{s.session_date}</td>
+                <td style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtDate(s.session_date)}</td>
                 <td style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{s.start_time} – {s.end_time}</td>
                 <td>{s.topic}</td>
                 <td><span className="chip navy">{groupMap[s.group_id] || '—'}</span></td>
@@ -396,7 +391,7 @@ export function SessionsScreen({ onMark }) {
                     setOpenMenuSessionId(s.id);
                   }}><I.More size={15}/></button>
                   {openMenuSessionId === s.id && (
-                    <div style={{ position: 'fixed', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, boxShadow: '0 10px 30px rgba(0,0,0,0.15)', zIndex: 9999, minWidth: 160, top: menuPos.y, left: menuPos.x }}>
+                    <div className="menu" style={{ position: 'fixed', top: menuPos.y, left: menuPos.x }}>
                       {[
                         { icon: 'Calendar', label: t('sessions_mark_attendance'), action: () => { onMark(s.id); setOpenMenuSessionId(null); } },
                         { icon: 'Edit', label: t('edit'), action: () => openEditSession(s) },
@@ -404,7 +399,7 @@ export function SessionsScreen({ onMark }) {
                       ].map(item => {
                         const Ic = I[item.icon];
                         return (
-                          <button key={item.label} style={{ width: '100%', padding: '9px 14px', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', color: item.danger ? 'var(--brand-red)' : 'var(--text)', fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 8 }} onClick={item.action}>
+                          <button key={item.label} className={'menu-item' + (item.danger ? ' danger' : '')} onClick={item.action}>
                             <Ic size={14}/> {item.label}
                           </button>
                         );
@@ -419,151 +414,142 @@ export function SessionsScreen({ onMark }) {
       </div>
 
       {showCreate && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 120 }} onClick={() => setShowCreate(false)}>
-          <div className="card" style={{ width: 560, padding: 22, boxShadow: 'var(--shadow-lg)' }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{t('sessions_new_title')}</h3>
-              <button className="icon-btn" style={{ width: 32, height: 32 }} onClick={() => setShowCreate(false)}><I.X size={16}/></button>
+        <Modal
+          onClose={() => setShowCreate(false)}
+          title={t('sessions_new_title')}
+          footer={<>
+            <button className="btn ghost" onClick={() => setShowCreate(false)}>{t('cancel')}</button>
+            <button className="btn primary" onClick={handleCreateSession} disabled={saving}><I.Check size={14}/> {saving ? t('saving') : t('sessions_create')}</button>
+          </>}
+        >
+          <div className="grid-2" style={{ gap: 12 }}>
+            <div className="field">
+              <label>{t('sessions_group')} <span className="req">*</span></label>
+              <SearchableGroupSelect value={newSession.group_id} onChange={v => setNewSession(p => ({ ...p, group_id: v }))} groups={groups} placeholder={t('groups_coach_none')} />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div className="field">
-                <label>{t('sessions_group')} <span className="req">*</span></label>
-                <SearchableGroupSelect value={newSession.group_id} onChange={v => setNewSession(p => ({ ...p, group_id: v }))} groups={groups} placeholder={t('groups_coach_none')} />
-              </div>
-              <div className="field">
-                <label>{t('sessions_date')} <span className="req">*</span></label>
-                <input type="date" value={newSession.session_date} onChange={e => setNewSession(p => ({ ...p, session_date: e.target.value }))} />
-              </div>
-              <div className="field">
-                <label>{t('sessions_topic')} <span className="req">*</span></label>
-                <input value={newSession.topic} onChange={e => setNewSession(p => ({ ...p, topic: e.target.value }))} placeholder="Masalan: Tezlik mashqi" />
-              </div>
-              <div className="field">
-                <label>{t('sessions_location')}</label>
-                <input value={newSession.station} onChange={e => setNewSession(p => ({ ...p, station: e.target.value }))} placeholder="Maydon 1" />
-              </div>
-              <div className="field">
-                <label>{t('sessions_start')}</label>
-                <input type="time" value={newSession.start_time} onChange={e => setNewSession(p => ({ ...p, start_time: e.target.value }))} />
-              </div>
-              <div className="field">
-                <label>{t('sessions_end')}</label>
-                <input type="time" value={newSession.end_time} onChange={e => setNewSession(p => ({ ...p, end_time: e.target.value }))} />
-              </div>
-              <div className="field" style={{ gridColumn: '1 / -1' }}>
-                <label>{t('transactions_comment')}</label>
-                <textarea value={newSession.description} onChange={e => setNewSession(p => ({ ...p, description: e.target.value }))} placeholder="" />
-              </div>
+            <div className="field">
+              <label>{t('sessions_date')} <span className="req">*</span></label>
+              <input type="date" value={newSession.session_date} onChange={e => setNewSession(p => ({ ...p, session_date: e.target.value }))} />
             </div>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 18 }}>
-              <button className="btn ghost" onClick={() => setShowCreate(false)}>{t('cancel')}</button>
-              <button className="btn primary" onClick={handleCreateSession} disabled={saving}><I.Check size={14}/> {saving ? t('saving') : t('sessions_create')}</button>
+            <div className="field">
+              <label>{t('sessions_topic')} <span className="req">*</span></label>
+              <input value={newSession.topic} onChange={e => setNewSession(p => ({ ...p, topic: e.target.value }))} placeholder="Masalan: Tezlik mashqi" />
+            </div>
+            <div className="field">
+              <label>{t('sessions_location')}</label>
+              <input value={newSession.station} onChange={e => setNewSession(p => ({ ...p, station: e.target.value }))} placeholder="Maydon 1" />
+            </div>
+            <div className="field">
+              <label>{t('sessions_start')}</label>
+              <input type="time" value={newSession.start_time} onChange={e => setNewSession(p => ({ ...p, start_time: e.target.value }))} />
+            </div>
+            <div className="field">
+              <label>{t('sessions_end')}</label>
+              <input type="time" value={newSession.end_time} onChange={e => setNewSession(p => ({ ...p, end_time: e.target.value }))} />
+            </div>
+            <div className="field col-span-2">
+              <label>{t('transactions_comment')}</label>
+              <textarea value={newSession.description} onChange={e => setNewSession(p => ({ ...p, description: e.target.value }))} placeholder="" />
             </div>
           </div>
-        </div>
+        </Modal>
       )}
       {editingSession && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 120 }} onClick={() => setEditingSession(null)}>
-          <div className="card" style={{ width: 560, padding: 22, boxShadow: 'var(--shadow-lg)' }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{t('edit')} — {t('sessions_tab_sessions')}</h3>
-              <button className="icon-btn" style={{ width: 32, height: 32 }} onClick={() => setEditingSession(null)}><I.X size={16}/></button>
+        <Modal
+          onClose={() => setEditingSession(null)}
+          title={`${t('edit')} — ${t('sessions_tab_sessions')}`}
+          footer={<>
+            <button className="btn ghost" onClick={() => setEditingSession(null)}>{t('cancel')}</button>
+            <button className="btn primary" onClick={handleEditSession} disabled={saving}><I.Check size={14}/> {saving ? t('saving') : t('save')}</button>
+          </>}
+        >
+          <div className="grid-2" style={{ gap: 12 }}>
+            <div className="field">
+              <label>{t('sessions_col_group')} <span className="req">*</span></label>
+              <SearchableGroupSelect value={editForm.group_id} onChange={v => setEditForm(p => ({ ...p, group_id: v }))} groups={groups} placeholder="Tanlang" />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div className="field">
-                <label>{t('sessions_col_group')} <span className="req">*</span></label>
-                <SearchableGroupSelect value={editForm.group_id} onChange={v => setEditForm(p => ({ ...p, group_id: v }))} groups={groups} placeholder="Tanlang" />
-              </div>
-              <div className="field">
-                <label>{t('sessions_col_date')} <span className="req">*</span></label>
-                <input type="date" value={editForm.session_date} onChange={e => setEditForm(p => ({ ...p, session_date: e.target.value }))} />
-              </div>
-              <div className="field">
-                <label>{t('sessions_topic')} <span className="req">*</span></label>
-                <input value={editForm.topic} onChange={e => setEditForm(p => ({ ...p, topic: e.target.value }))} placeholder="Masalan: Tezlik mashqi" />
-              </div>
-              <div className="field">
-                <label>{t('field_pitch')}</label>
-                <input value={editForm.station} onChange={e => setEditForm(p => ({ ...p, station: e.target.value }))} placeholder="Maydon 1" />
-              </div>
-              <div className="field">
-                <label>{t('sessions_start')}</label>
-                <input type="time" value={editForm.start_time} onChange={e => setEditForm(p => ({ ...p, start_time: e.target.value }))} />
-              </div>
-              <div className="field">
-                <label>{t('sessions_end')}</label>
-                <input type="time" value={editForm.end_time} onChange={e => setEditForm(p => ({ ...p, end_time: e.target.value }))} />
-              </div>
-              <div className="field" style={{ gridColumn: '1 / -1' }}>
-                <label>{t('field_comment')}</label>
-                <textarea value={editForm.description} onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))} placeholder={t('field_comment')} />
-              </div>
+            <div className="field">
+              <label>{t('sessions_col_date')} <span className="req">*</span></label>
+              <input type="date" value={editForm.session_date} onChange={e => setEditForm(p => ({ ...p, session_date: e.target.value }))} />
             </div>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 18 }}>
-              <button className="btn ghost" onClick={() => setEditingSession(null)}>{t('cancel')}</button>
-              <button className="btn primary" onClick={handleEditSession} disabled={saving}><I.Check size={14}/> {saving ? t('saving') : t('save')}</button>
+            <div className="field">
+              <label>{t('sessions_topic')} <span className="req">*</span></label>
+              <input value={editForm.topic} onChange={e => setEditForm(p => ({ ...p, topic: e.target.value }))} placeholder="Masalan: Tezlik mashqi" />
+            </div>
+            <div className="field">
+              <label>{t('field_pitch')}</label>
+              <input value={editForm.station} onChange={e => setEditForm(p => ({ ...p, station: e.target.value }))} placeholder="Maydon 1" />
+            </div>
+            <div className="field">
+              <label>{t('sessions_start')}</label>
+              <input type="time" value={editForm.start_time} onChange={e => setEditForm(p => ({ ...p, start_time: e.target.value }))} />
+            </div>
+            <div className="field">
+              <label>{t('sessions_end')}</label>
+              <input type="time" value={editForm.end_time} onChange={e => setEditForm(p => ({ ...p, end_time: e.target.value }))} />
+            </div>
+            <div className="field col-span-2">
+              <label>{t('field_comment')}</label>
+              <textarea value={editForm.description} onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))} placeholder={t('field_comment')} />
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
       {showBulkCreate && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 120 }} onClick={() => setShowBulkCreate(false)}>
-          <div className="card" style={{ width: 560, padding: 22, boxShadow: 'var(--shadow-lg)' }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{t('bulk_create_title')}</h3>
-              <button className="icon-btn" style={{ width: 32, height: 32 }} onClick={() => setShowBulkCreate(false)}><I.X size={16}/></button>
+        <Modal
+          onClose={() => setShowBulkCreate(false)}
+          title={t('bulk_create_title')}
+          footer={<>
+            <button className="btn ghost" onClick={() => setShowBulkCreate(false)}>{t('cancel')}</button>
+            <button className="btn primary" onClick={handleBulkCreate} disabled={savingBulk}><I.Check size={14}/> {savingBulk ? t('creating') : t('create')}</button>
+          </>}
+        >
+          <div className="grid-2" style={{ gap: 12 }}>
+            <div className="field col-span-2">
+              <label>{t('field_group')} <span className="req">*</span></label>
+              <SearchableGroupSelect value={bulkForm.group_id} onChange={v => setBulkForm(p => ({ ...p, group_id: v }))} groups={groups} placeholder="Tanlang" />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div className="field" style={{ gridColumn: '1 / -1' }}>
-                <label>{t('field_group')} <span className="req">*</span></label>
-                <SearchableGroupSelect value={bulkForm.group_id} onChange={v => setBulkForm(p => ({ ...p, group_id: v }))} groups={groups} placeholder="Tanlang" />
-              </div>
-              <div className="field">
-                <label>{t('bulk_from_date')} <span className="req">*</span></label>
-                <input type="date" value={bulkForm.from_date} onChange={e => setBulkForm(p => ({ ...p, from_date: e.target.value }))} />
-              </div>
-              <div className="field">
-                <label>{t('bulk_to_date')} <span className="req">*</span></label>
-                <input type="date" value={bulkForm.to_date} onChange={e => setBulkForm(p => ({ ...p, to_date: e.target.value }))} />
-              </div>
-              <div className="field" style={{ gridColumn: '1 / -1' }}>
-                <label>{t('bulk_weekdays')} <span className="req">*</span></label>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {[['1','Du'],['2','Se'],['3','Ch'],['4','Pa'],['5','Ju'],['6','Sh'],['0','Ya']].map(([val, label]) => {
-                    const sel = bulkDays.includes(val);
-                    return (
-                      <button key={val} type="button" onClick={() => setBulkDays(prev => sel ? prev.filter(d => d !== val) : [...prev, val])}
-                        style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid ' + (sel ? 'var(--accent)' : 'var(--border)'), background: sel ? 'var(--selected)' : 'var(--surface)', color: sel ? 'var(--accent)' : 'var(--text)', fontWeight: sel ? 700 : 500, cursor: 'pointer', fontSize: 13 }}>
-                        {label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-              <div className="field" style={{ gridColumn: '1 / -1' }}>
-                <label>{t('sessions_topic')} <span className="req">*</span></label>
-                <input value={bulkForm.topic} onChange={e => setBulkForm(p => ({ ...p, topic: e.target.value }))} placeholder="Masalan: Tezlik mashqi" />
-              </div>
-              <div className="field">
-                <label>{t('sessions_start')}</label>
-                <input type="time" value={bulkForm.start_time} onChange={e => setBulkForm(p => ({ ...p, start_time: e.target.value }))} />
-              </div>
-              <div className="field">
-                <label>{t('sessions_end')}</label>
-                <input type="time" value={bulkForm.end_time} onChange={e => setBulkForm(p => ({ ...p, end_time: e.target.value }))} />
-              </div>
-              <div className="field" style={{ gridColumn: '1 / -1' }}>
-                <label>{t('field_pitch')}</label>
-                <input value={bulkForm.station} onChange={e => setBulkForm(p => ({ ...p, station: e.target.value }))} placeholder="Maydon 1" />
+            <div className="field">
+              <label>{t('bulk_from_date')} <span className="req">*</span></label>
+              <input type="date" value={bulkForm.from_date} onChange={e => setBulkForm(p => ({ ...p, from_date: e.target.value }))} />
+            </div>
+            <div className="field">
+              <label>{t('bulk_to_date')} <span className="req">*</span></label>
+              <input type="date" value={bulkForm.to_date} onChange={e => setBulkForm(p => ({ ...p, to_date: e.target.value }))} />
+            </div>
+            <div className="field col-span-2">
+              <label>{t('bulk_weekdays')} <span className="req">*</span></label>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {[['1','Du'],['2','Se'],['3','Ch'],['4','Pa'],['5','Ju'],['6','Sh'],['0','Ya']].map(([val, label]) => {
+                  const sel = bulkDays.includes(val);
+                  return (
+                    <button key={val} type="button" onClick={() => setBulkDays(prev => sel ? prev.filter(d => d !== val) : [...prev, val])}
+                      style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid ' + (sel ? 'var(--accent)' : 'var(--border)'), background: sel ? 'var(--selected)' : 'var(--surface)', color: sel ? 'var(--accent)' : 'var(--text)', fontWeight: sel ? 700 : 500, cursor: 'pointer', fontSize: 13 }}>
+                      {label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 18 }}>
-              <button className="btn ghost" onClick={() => setShowBulkCreate(false)}>{t('cancel')}</button>
-              <button className="btn primary" onClick={handleBulkCreate} disabled={savingBulk}><I.Check size={14}/> {savingBulk ? t('creating') : t('create')}</button>
+            <div className="field col-span-2">
+              <label>{t('sessions_topic')} <span className="req">*</span></label>
+              <input value={bulkForm.topic} onChange={e => setBulkForm(p => ({ ...p, topic: e.target.value }))} placeholder="Masalan: Tezlik mashqi" />
+            </div>
+            <div className="field">
+              <label>{t('sessions_start')}</label>
+              <input type="time" value={bulkForm.start_time} onChange={e => setBulkForm(p => ({ ...p, start_time: e.target.value }))} />
+            </div>
+            <div className="field">
+              <label>{t('sessions_end')}</label>
+              <input type="time" value={bulkForm.end_time} onChange={e => setBulkForm(p => ({ ...p, end_time: e.target.value }))} />
+            </div>
+            <div className="field col-span-2">
+              <label>{t('field_pitch')}</label>
+              <input value={bulkForm.station} onChange={e => setBulkForm(p => ({ ...p, station: e.target.value }))} placeholder="Maydon 1" />
             </div>
           </div>
-        </div>
+        </Modal>
       )}
       </div>
       )}

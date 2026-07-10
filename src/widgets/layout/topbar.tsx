@@ -73,12 +73,12 @@ export function Topbar({ crumbs, role, onRoleSwitch, canSwitchRole, theme, onThe
                     }}>
                     <Icon.User size={14} color="var(--muted)"/>
                     {r}
-                    {r === role && <Icon.Check size={14} color="var(--brand-red)" style={{ marginLeft: 'auto' }}/>}
+                    {r === role && <Icon.Check size={14} color="var(--accent)" style={{ marginLeft: 'auto' }}/>}
                   </div>
                 ))}
                 <div style={{ height: 1, background: 'var(--border)', margin: '6px 0' }}></div>
               </>}
-              <div onClick={onSignOut} style={{ padding: '8px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', gap: 10, color: 'var(--brand-red)' }}>
+              <div className="menu-item danger" onClick={onSignOut}>
                 <Icon.Logout size={14}/> {t('topbar_logout')}
               </div>
             </div>
@@ -114,7 +114,7 @@ function ActionDropdown({ trigger, items, value, onSelect, title, triggerClass =
                 onMouseLeave={e => { if (!selected) e.currentTarget.style.background = 'transparent'; }}>
                 {it.icon}
                 <span style={{ flex: 1 }}>{it.label}</span>
-                {selected && <Icon.Check size={14} color="var(--brand-red)"/>}
+                {selected && <Icon.Check size={14} color="var(--accent)"/>}
               </div>
             );
           })}

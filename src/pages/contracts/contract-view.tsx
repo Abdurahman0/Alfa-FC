@@ -70,8 +70,9 @@ import {
   apiGetAuditLogs,
 } from '@/shared/api';
 
-import { fmt } from '@/shared/lib/format';
+import { fmt, fmtDate, fmtDateTime } from '@/shared/lib/format';
 import { Stat } from '@/shared/ui/stat';
+import { Modal, DetailGrid } from '@/shared/ui/modal';
 
 import { statusChip } from './status-chip';
 
@@ -263,7 +264,7 @@ export function ContractView({ contractId, onBack, onToast, onNavigateToStudent 
             </button>
           )}
           {contract.status === 'ACTIVE' && (
-            <button className="btn ghost" onClick={() => { setTerminateReason(''); const _n = new Date(); _n.setMinutes(_n.getMinutes() - _n.getTimezoneOffset()); setTerminateAt(_n.toISOString().slice(0, 16)); setTerminateModal(true); }} style={{ color: 'var(--brand-red)', borderColor: 'var(--brand-red)' }}>
+            <button className="btn ghost danger-ghost" onClick={() => { setTerminateReason(''); const _n = new Date(); _n.setMinutes(_n.getMinutes() - _n.getTimezoneOffset()); setTerminateAt(_n.toISOString().slice(0, 16)); setTerminateModal(true); }}>
               <I.XCircle size={15} /> {t('contracts_cancel_modal_title')}
             </button>
           )}
@@ -277,43 +278,36 @@ export function ContractView({ contractId, onBack, onToast, onNavigateToStudent 
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
         <div className="card" style={{ padding: 18 }}>
           <div className="card-title" style={{ marginBottom: 12 }}>{t('contracts_info_card')}</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            {[
-              [t('contracts_contract_number_label'), contract.contract_number],
-              [t('contracts_status'), statusChip(contract.status, t)],
-              [t('contracts_student'), studentName],
-              [t('contracts_client_label'), cust.full_name || '—'],
-              [t('contracts_start_date'), contract.start_date || '—'],
-              [t('contracts_end_date'), contract.end_date || '—'],
-              [t('contracts_monthly_fee'), `${fmt.format(contract.monthly_fee || 0)} so'm`],
-              [t('contracts_contract_year_label'), contract.contract_year || '—'],
-            ].map(([k, v]) => (
-              <div key={k}>
-                <div style={{ fontSize: 11.5, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 700 }}>{k}</div>
-                <div style={{ fontSize: 13.5, marginTop: 4, fontWeight: 600 }}>{v}</div>
-              </div>
-            ))}
-          </div>
+          <DetailGrid items={[
+            { label: t('contracts_contract_number_label'), value: contract.contract_number },
+            { label: t('contracts_status'), value: statusChip(contract.status, t) },
+            { label: t('contracts_student'), value: studentName },
+            { label: t('contracts_client_label'), value: cust.full_name || '—' },
+            { label: t('contracts_start_date'), value: fmtDate(contract.start_date) },
+            { label: t('contracts_end_date'), value: fmtDate(contract.end_date) },
+            { label: t('contracts_monthly_fee'), value: `${fmt.format(contract.monthly_fee || 0)} so'm` },
+            { label: t('contracts_contract_year_label'), value: contract.contract_year || '—' },
+          ]} />
         </div>
 
         <div className="card" style={{ padding: 18 }}>
           <div className="card-title" style={{ marginBottom: 12 }}>{t('contracts_extra_card')}</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="list-stack">
             {[
               [t('contracts_passport_label'), cust.passport_number || '—'],
               [t('profile_address'), cust.address || '—'],
               [t('contracts_birth_year_label'), contract.birth_year || '—'],
-              [t('contracts_created'), (contract.created_at || '').slice(0, 19).replace('T', ' ') || '—'],
+              [t('contracts_created'), fmtDateTime(contract.created_at)],
             ].map(([l, v]) => (
-              <div key={l} style={{ padding: 10, background: 'var(--surface-2)', borderRadius: 8 }}>
-                <div style={{ fontSize: 11, color: 'var(--muted)' }}>{l}</div>
-                <div style={{ fontWeight: 600 }}>{v}</div>
+              <div key={l} className="detail-item">
+                <div className="label">{l}</div>
+                <div className="value">{v}</div>
               </div>
             ))}
           </div>
           {contract.termination_reason && (
-            <div style={{ marginTop: 10, padding: 10, background: 'var(--accent-soft)', borderRadius: 8, border: '1px solid var(--brand-red)' }}>
-              <div style={{ fontSize: 11, color: 'var(--brand-red)', fontWeight: 700 }}>{t('contracts_termination_reason_label')}</div>
+            <div style={{ marginTop: 10, padding: 10, background: 'var(--danger-soft)', borderRadius: 8, border: '1px solid var(--danger)' }}>
+              <div style={{ fontSize: 11, color: 'var(--danger)', fontWeight: 700 }}>{t('contracts_termination_reason_label')}</div>
               <div style={{ fontSize: 13 }}>{contract.termination_reason}</div>
             </div>
           )}
@@ -340,7 +334,7 @@ export function ContractView({ contractId, onBack, onToast, onNavigateToStudent 
 
         return (
           <div style={{ marginTop: 16 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 14 }}>
+            <div className="grid-3" style={{ marginBottom: 14 }}>
               <div className="card" style={{ padding: 16 }}>
                 <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{t('tx_st_success')}</div>
                 <div style={{ fontSize: 22, fontWeight: 700, marginTop: 6, color: 'var(--success)' }}>{fmt.format(totalPaid)} <span style={{ fontSize: 13, fontWeight: 500 }}>so'm</span></div>
@@ -353,14 +347,14 @@ export function ContractView({ contractId, onBack, onToast, onNavigateToStudent 
               </div>
               <div className="card" style={{ padding: 16 }}>
                 <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{t('rpt_debtors_col_debt') || 'Qarz'}</div>
-                <div style={{ fontSize: 22, fontWeight: 700, marginTop: 6, color: debt > 0 ? 'var(--brand-red)' : 'var(--success)' }}>
+                <div style={{ fontSize: 22, fontWeight: 700, marginTop: 6, color: debt > 0 ? 'var(--danger)' : 'var(--success)' }}>
                   {debt > 0 ? fmt.format(debt) : '0'} <span style={{ fontSize: 13, fontWeight: 500 }}>so'm</span>
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{debt > 0 ? "To'lanmagan" : 'Qarz yo\'q'}</div>
               </div>
             </div>
 
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div className="table-wrap">
               <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: 14 }}>
                 {t('nav_transactions')} <span style={{ fontWeight: 400, color: 'var(--muted)', fontSize: 12.5 }}>({transactions.length})</span>
               </div>
@@ -387,7 +381,7 @@ export function ContractView({ contractId, onBack, onToast, onNavigateToStudent 
                         <td style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{fmt.format(tx.amount || 0)} so'm</td>
                         <td>{srcLabel(tx.source)}</td>
                         <td style={{ fontVariantNumeric: 'tabular-nums', fontSize: 12.5 }}>{tx.payment_month ? `${tx.payment_year || ''}/${String(tx.payment_month).padStart(2,'0')}` : '—'}</td>
-                        <td style={{ fontVariantNumeric: 'tabular-nums', fontSize: 12.5 }}>{(tx.created_at || '').slice(0, 10) || '—'}</td>
+                        <td style={{ fontVariantNumeric: 'tabular-nums', fontSize: 12.5 }}>{fmtDate(tx.created_at)}</td>
                         <td>{stChip(tx.status)}</td>
                       </tr>
                     ))}
@@ -401,136 +395,125 @@ export function ContractView({ contractId, onBack, onToast, onNavigateToStudent 
 
       {/* Terminate modal */}
       {terminateModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', display: 'grid', placeItems: 'center', zIndex: 140 }} onClick={() => setTerminateModal(false)}>
-          <div className="card" style={{ width: 440, padding: 18 }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <h3 style={{ margin: 0 }}>{t('contracts_cancel_modal_title')}</h3>
-              <button className="icon-btn" style={{ width: 30, height: 30 }} onClick={() => setTerminateModal(false)}><I.X size={15} /></button>
-            </div>
-            <div className="field" style={{ marginBottom: 12 }}>
-              <label>{t('contracts_cancel_reason_field')}</label>
-              <textarea rows={3} value={terminateReason} onChange={e => setTerminateReason(e.target.value)} placeholder="" />
-            </div>
-            <div className="field" style={{ marginBottom: 14 }}>
-              <label>{t('contracts_cancel_date_field')}</label>
-              <input type="datetime-local" value={terminateAt} onChange={e => setTerminateAt(e.target.value)} />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <button className="btn ghost" onClick={() => setTerminateModal(false)}>{t('cancel')}</button>
-              <button className="btn" style={{ background: 'var(--brand-red)', color: '#fff', border: 'none' }} onClick={confirmTerminate} disabled={saving || !terminateReason.trim()}>
-                {saving ? t('loading') : t('contracts_cancel_modal_title')}
-              </button>
-            </div>
+        <Modal
+          size="sm"
+          onClose={() => setTerminateModal(false)}
+          title={t('contracts_cancel_modal_title')}
+          footer={<>
+            <button className="btn ghost" onClick={() => setTerminateModal(false)}>{t('cancel')}</button>
+            <button className="btn danger" onClick={confirmTerminate} disabled={saving || !terminateReason.trim()}>
+              {saving ? t('loading') : t('contracts_cancel_modal_title')}
+            </button>
+          </>}
+        >
+          <div className="field" style={{ marginBottom: 12 }}>
+            <label>{t('contracts_cancel_reason_field')}</label>
+            <textarea rows={3} value={terminateReason} onChange={e => setTerminateReason(e.target.value)} placeholder="" />
           </div>
-        </div>
+          <div className="field">
+            <label>{t('contracts_cancel_date_field')}</label>
+            <input type="datetime-local" value={terminateAt} onChange={e => setTerminateAt(e.target.value)} />
+          </div>
+        </Modal>
       )}
 
       {/* Fee modal */}
       {feeModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', display: 'grid', placeItems: 'center', zIndex: 140 }} onClick={() => setFeeModal(false)}>
-          <div className="card" style={{ width: 380, padding: 18 }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <h3 style={{ margin: 0 }}>{t('contracts_edit_fee')}</h3>
-              <button className="icon-btn" style={{ width: 30, height: 30 }} onClick={() => setFeeModal(false)}><I.X size={15} /></button>
-            </div>
-            <div className="field" style={{ marginBottom: 14 }}>
-              <label>{t('contracts_new_fee_label')}</label>
-              <input type="number" value={newFee} onChange={e => setNewFee(e.target.value)} placeholder="500000" />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <button className="btn ghost" onClick={() => setFeeModal(false)}>{t('cancel')}</button>
-              <button className="btn primary" onClick={saveFee} disabled={saving || !newFee}>
-                {saving ? t('saving') : t('save')}
-              </button>
-            </div>
+        <Modal
+          size="sm"
+          onClose={() => setFeeModal(false)}
+          title={t('contracts_edit_fee')}
+          footer={<>
+            <button className="btn ghost" onClick={() => setFeeModal(false)}>{t('cancel')}</button>
+            <button className="btn primary" onClick={saveFee} disabled={saving || !newFee}>
+              {saving ? t('saving') : t('save')}
+            </button>
+          </>}
+        >
+          <div className="field">
+            <label>{t('contracts_new_fee_label')}</label>
+            <input type="number" value={newFee} onChange={e => setNewFee(e.target.value)} placeholder="500000" />
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* Dates modal */}
       {datesModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', display: 'grid', placeItems: 'center', zIndex: 140 }} onClick={() => setDatesModal(false)}>
-          <div className="card" style={{ width: 400, padding: 18 }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <h3 style={{ margin: 0 }}>{t('contracts_change_dates_btn')}</h3>
-              <button className="icon-btn" style={{ width: 30, height: 30 }} onClick={() => setDatesModal(false)}><I.X size={15} /></button>
-            </div>
-            <div className="field" style={{ marginBottom: 10 }}>
-              <label>{t('contracts_start_date')} *</label>
-              <input type="date" value={datesForm.start_date} onChange={e => setDatesForm(f => ({ ...f, start_date: e.target.value }))} />
-            </div>
-            <div className="field" style={{ marginBottom: 14 }}>
-              <label>{t('contracts_end_date')} *</label>
-              <input type="date" value={datesForm.end_date} onChange={e => setDatesForm(f => ({ ...f, end_date: e.target.value }))} />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <button className="btn ghost" onClick={() => setDatesModal(false)}>{t('cancel')}</button>
-              <button className="btn primary" onClick={saveDates} disabled={saving || !datesForm.start_date || !datesForm.end_date}>
-                {saving ? t('saving') : t('save')}
-              </button>
-            </div>
+        <Modal
+          size="sm"
+          onClose={() => setDatesModal(false)}
+          title={t('contracts_change_dates_btn')}
+          footer={<>
+            <button className="btn ghost" onClick={() => setDatesModal(false)}>{t('cancel')}</button>
+            <button className="btn primary" onClick={saveDates} disabled={saving || !datesForm.start_date || !datesForm.end_date}>
+              {saving ? t('saving') : t('save')}
+            </button>
+          </>}
+        >
+          <div className="field" style={{ marginBottom: 10 }}>
+            <label>{t('contracts_start_date')} *</label>
+            <input type="date" value={datesForm.start_date} onChange={e => setDatesForm(f => ({ ...f, start_date: e.target.value }))} />
           </div>
-        </div>
+          <div className="field">
+            <label>{t('contracts_end_date')} *</label>
+            <input type="date" value={datesForm.end_date} onChange={e => setDatesForm(f => ({ ...f, end_date: e.target.value }))} />
+          </div>
+        </Modal>
       )}
 
       {/* Edit modal */}
       {editModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', display: 'grid', placeItems: 'center', zIndex: 140 }} onClick={() => setEditModal(false)}>
-          <div className="card" style={{ width: 460, padding: 18 }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <h3 style={{ margin: 0 }}>{t('contracts_edit_modal_title')}</h3>
-              <button className="icon-btn" style={{ width: 30, height: 30 }} onClick={() => setEditModal(false)}><I.X size={15} /></button>
+        <Modal
+          onClose={() => setEditModal(false)}
+          title={t('contracts_edit_modal_title')}
+          footer={<>
+            <button className="btn ghost" onClick={() => setEditModal(false)}>{t('cancel')}</button>
+            <button className="btn primary" onClick={saveEdit} disabled={saving}>
+              {saving ? t('saving') : t('save')}
+            </button>
+          </>}
+        >
+          {[
+            [t('contracts_new_fee_label'), 'monthly_fee', 'number', '500000'],
+            [t('contracts_client_name_label'), 'customer_full_name', 'text', ''],
+            [t('contracts_passport_no_label'), 'customer_passport_number', 'text', 'AA1234567'],
+            [t('profile_address'), 'customer_address', 'text', ''],
+          ].map(([label, key, type, ph]) => (
+            <div className="field" key={key} style={{ marginBottom: 10 }}>
+              <label>{label}</label>
+              <input type={type} value={editForm[key]} onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))} placeholder={ph} />
             </div>
-            {[
-              [t('contracts_new_fee_label'), 'monthly_fee', 'number', '500000'],
-              [t('contracts_client_name_label'), 'customer_full_name', 'text', ''],
-              [t('contracts_passport_no_label'), 'customer_passport_number', 'text', 'AA1234567'],
-              [t('profile_address'), 'customer_address', 'text', ''],
-            ].map(([label, key, type, ph]) => (
-              <div className="field" key={key} style={{ marginBottom: 10 }}>
-                <label>{label}</label>
-                <input type={type} value={editForm[key]} onChange={e => setEditForm(f => ({ ...f, [key]: e.target.value }))} placeholder={ph} />
-              </div>
-            ))}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 4 }}>
-              <button className="btn ghost" onClick={() => setEditModal(false)}>{t('cancel')}</button>
-              <button className="btn primary" onClick={saveEdit} disabled={saving}>
-                {saving ? t('saving') : t('save')}
-              </button>
-            </div>
-          </div>
-        </div>
+          ))}
+        </Modal>
       )}
 
       {/* Status modal */}
       {statusModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', display: 'grid', placeItems: 'center', zIndex: 140 }} onClick={() => setStatusModal(false)}>
-          <div className="card" style={{ width: 360, padding: 18 }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <h3 style={{ margin: 0 }}>{t('contracts_change_status_title')}</h3>
-              <button className="icon-btn" style={{ width: 30, height: 30 }} onClick={() => setStatusModal(false)}><I.X size={15} /></button>
-            </div>
-            <div className="field" style={{ marginBottom: 14 }}>
-              <label>{t('contracts_new_status_label')}</label>
-              <SearchableSelect
-                value={newStatus}
-                onChange={v => setNewStatus(v)}
-                options={[
-                  { value: 'ACTIVE', label: `${t('status_active')} (ACTIVE)` },
-                  { value: 'EXPIRED', label: `${t('status_cancelled')} (EXPIRED)` },
-                  { value: 'ARCHIVED', label: `${t('status_archived')} (ARCHIVED)` },
-                ]}
-                style={{ width: '100%' }}
-              />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <button className="btn ghost" onClick={() => setStatusModal(false)}>{t('cancel')}</button>
-              <button className="btn primary" onClick={saveStatus} disabled={saving || !newStatus}>
-                {saving ? t('saving') : t('save')}
-              </button>
-            </div>
+        <Modal
+          size="sm"
+          onClose={() => setStatusModal(false)}
+          title={t('contracts_change_status_title')}
+          footer={<>
+            <button className="btn ghost" onClick={() => setStatusModal(false)}>{t('cancel')}</button>
+            <button className="btn primary" onClick={saveStatus} disabled={saving || !newStatus}>
+              {saving ? t('saving') : t('save')}
+            </button>
+          </>}
+        >
+          <div className="field">
+            <label>{t('contracts_new_status_label')}</label>
+            <SearchableSelect
+              value={newStatus}
+              onChange={v => setNewStatus(v)}
+              options={[
+                { value: 'ACTIVE', label: `${t('status_active')} (ACTIVE)` },
+                { value: 'EXPIRED', label: `${t('status_cancelled')} (EXPIRED)` },
+                { value: 'ARCHIVED', label: `${t('status_archived')} (ARCHIVED)` },
+              ]}
+              style={{ width: '100%' }}
+            />
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

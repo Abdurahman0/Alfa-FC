@@ -13,6 +13,7 @@ import {
 import { SearchableGroupSelect, SearchableSelect } from '@/shared/ui/controls';
 import { useT } from '@/shared/i18n/lang';
 import { avatarColor } from '@/shared/lib/avatar';
+import { fmtDate } from '@/shared/lib/format';
 import { calcAge, fullName, normalizeStatus } from './lib';
 
 export function StudentsList({ onOpen, onNew, onToast }) {
@@ -189,7 +190,7 @@ export function StudentsList({ onOpen, onNew, onToast }) {
                 const age = calcAge(s.date_of_birth);
                 const grpName = groupMap[s.group_id] || '—';
                 return (
-                  <tr key={s.id} onClick={() => onOpen(s.id)}>
+                  <tr key={s.id} className={selected.includes(s.id) ? 'selected' : undefined} onClick={() => onOpen(s.id)}>
                     <td onClick={e => e.stopPropagation()}>
                       <input type="checkbox" checked={selected.includes(s.id)} onChange={e => setSelected(e.target.checked ? [...selected, s.id] : selected.filter(x => x !== s.id))}/>
                     </td>
@@ -203,7 +204,7 @@ export function StudentsList({ onOpen, onNew, onToast }) {
                       </div>
                     </td>
                     <td><span className="chip navy">{grpName}</span></td>
-                    <td style={{ fontVariantNumeric: 'tabular-nums', color: 'var(--text-2)' }}>{s.date_of_birth}</td>
+                    <td style={{ fontVariantNumeric: 'tabular-nums', color: 'var(--text-2)' }}>{fmtDate(s.date_of_birth)}</td>
                     <td style={{ fontVariantNumeric: 'tabular-nums', color: 'var(--text-2)' }}>{s.phone || '—'}</td>
                     <td>
                       {normalizeStatus(s.status) === 'active' && <span className="chip success"><span className="chip-dot"></span>{t('status_active')}</span>}
@@ -223,11 +224,11 @@ export function StudentsList({ onOpen, onNew, onToast }) {
                         }
                       }}><I.More size={16}/></button>
                       {openMenuStudentId === s.id && (
-                        <div style={{ position: 'fixed', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, boxShadow: '0 10px 30px rgba(0,0,0,0.15)', zIndex: 9999, minWidth: 160, top: menuPos.y, left: menuPos.x }} onClick={e => e.stopPropagation()}>
-                          <button style={{ width: '100%', padding: '10px 14px', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid var(--border)' }} onClick={() => { onOpen(s.id); setOpenMenuStudentId(null); }}>
+                        <div className="menu" style={{ position: 'fixed', top: menuPos.y, left: menuPos.x }} onClick={e => e.stopPropagation()}>
+                          <button className="menu-item" onClick={() => { onOpen(s.id); setOpenMenuStudentId(null); }}>
                             <I.Eye size={14} /> {t('open')}
                           </button>
-                          <button style={{ width: '100%', padding: '10px 14px', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--brand-red)', fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 8 }} onClick={() => handleDeleteStudent(s.id)}>
+                          <button className="menu-item danger" onClick={() => handleDeleteStudent(s.id)}>
                             <I.Trash2 size={14} /> {t('delete')}
                           </button>
                         </div>
@@ -247,8 +248,8 @@ export function StudentsList({ onOpen, onNew, onToast }) {
               const p = Math.max(1, page - 2) + i;
               if (p > totalPages) return null;
               return (
-                <button key={p} className={'btn sm ' + (page === p ? '' : 'ghost')}
-                  style={{ minWidth: 32, justifyContent: 'center', ...(page === p ? { background: 'var(--primary)', color: 'white', borderColor: 'var(--primary)' } : {}) }}
+                <button key={p} className={'btn sm ' + (page === p ? 'primary' : 'ghost')}
+                  style={{ minWidth: 32, justifyContent: 'center' }}
                   onClick={() => setPage(p)}>{p}</button>
               );
             })}

@@ -72,6 +72,7 @@ import {
 
 import { fmt } from '@/shared/lib/format';
 import { Stat } from '@/shared/ui/stat';
+import { Modal } from '@/shared/ui/modal';
 
 const ALL_PERMS = [
   { code: 'students:view', label: "O'quvchilarni ko'rish" },
@@ -412,7 +413,7 @@ export function UsersScreen({ initialView = 'users', onToast } = {}) {
               {users.map((u) => {
                 const isSelected = selectedIds.includes(u.id);
                 return (
-                  <tr key={u.id} style={isSelected ? { background: 'var(--selected)' } : {}}>
+                  <tr key={u.id} className={isSelected ? 'selected' : undefined}>
                     <td>
                       {!u.is_super_admin && (
                         <input type="checkbox" checked={isSelected} onChange={() => toggleSelect(u.id)} />
@@ -444,12 +445,12 @@ export function UsersScreen({ initialView = 'users', onToast } = {}) {
                         }
                       }}><I.More size={15} /></button>
                       {openMenuUserId === u.id && (
-                        <div style={{ position: 'fixed', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, boxShadow: '0 10px 30px rgba(0,0,0,0.15)', zIndex: 9999, minWidth: 160, top: menuPos.y, left: menuPos.x }} onClick={e => e.stopPropagation()}>
-                          <button style={{ width: '100%', padding: '10px 14px', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid var(--border)' }} onClick={() => openEditUser(u)}>
+                        <div className="menu" style={{ position: 'fixed', minWidth: 160, top: menuPos.y, left: menuPos.x }} onClick={e => e.stopPropagation()}>
+                          <button className="menu-item" onClick={() => openEditUser(u)}>
                             <I.Edit size={14} /> {t('edit')}
                           </button>
                           {!u.is_super_admin && (
-                            <button style={{ width: '100%', padding: '10px 14px', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--brand-red)', fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 8 }} onClick={() => deleteUser(u.id)} disabled={deletingUserId === u.id}>
+                            <button className="menu-item danger" onClick={() => deleteUser(u.id)} disabled={deletingUserId === u.id}>
                               <I.Trash2 size={14} /> {deletingUserId === u.id ? t('deleting') : t('delete')}
                             </button>
                           )}
@@ -482,7 +483,7 @@ export function UsersScreen({ initialView = 'users', onToast } = {}) {
                         ? <span style={{ color: 'var(--muted)', fontSize: 12 }}>—</span>
                         : <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
                             {(r.permissions || []).slice(0, 5).map(p => (
-                              <span key={p.id} style={{ fontSize: 10.5, background: 'var(--surface-2, #f1f5f9)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 6px', color: 'var(--text-2)', whiteSpace: 'nowrap' }}>{p.description}</span>
+                              <span key={p.id} style={{ fontSize: 10.5, background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 6px', color: 'var(--text-2)', whiteSpace: 'nowrap' }}>{p.description}</span>
                             ))}
                             {(r.permissions || []).length > 5 && (
                               <span style={{ fontSize: 10.5, color: 'var(--muted)', padding: '1px 2px', alignSelf: 'center' }}>+{(r.permissions || []).length - 5} ta</span>
@@ -493,7 +494,7 @@ export function UsersScreen({ initialView = 'users', onToast } = {}) {
                     <td>
                       <div style={{ display: 'flex', gap: 6 }}>
                         <button className="icon-btn" style={{ width: 30, height: 30 }} onClick={() => openEditRole(r)}><I.Edit size={14} /></button>
-                        <button className="icon-btn" style={{ width: 30, height: 30 }} onClick={() => removeRole(r.id)}><I.Trash2 size={15} color="var(--brand-red)" /></button>
+                        <button className="icon-btn danger" style={{ width: 30, height: 30 }} onClick={() => removeRole(r.id)}><I.Trash2 size={15} /></button>
                       </div>
                     </td>
                   </tr>
@@ -525,148 +526,145 @@ export function UsersScreen({ initialView = 'users', onToast } = {}) {
 
       {/* Create User Modal */}
       {showCreateUser && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', display: 'grid', placeItems: 'center', zIndex: 140 }} onClick={() => setShowCreateUser(false)}>
-          <div className="card" style={{ width: 520, padding: 18 }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <h3 style={{ margin: 0 }}>{t('users_create_user_modal')}</h3>
-              <button className="icon-btn" style={{ width: 30, height: 30 }} onClick={() => setShowCreateUser(false)}><I.X size={15} /></button>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <div className="field" style={{ gridColumn: 'span 2' }}>
-                <label>{t('users_fio_label')} *</label>
-                <input value={userForm.full_name} onChange={e => setUserForm(p => ({ ...p, full_name: e.target.value }))} placeholder="" />
-              </div>
-              <div className="field">
-                <label>{t('profile_phone')} *</label>
-                <input value={userForm.phone} onChange={e => setUserForm(p => ({ ...p, phone: e.target.value }))} placeholder="+998901234567" />
-              </div>
-              <div className="field">
-                <label>Email</label>
-                <input value={userForm.email} onChange={e => setUserForm(p => ({ ...p, email: e.target.value }))} placeholder="email@example.com" />
-              </div>
-              <div className="field">
-                <label>{t('users_pwd_label')}</label>
-                <input type="password" value={userForm.password} onChange={e => setUserForm(p => ({ ...p, password: e.target.value }))} placeholder="••••••••" />
-              </div>
-              <div className="field">
-                <label>{t('users_col_status')}</label>
-                <SearchableSelect
-                  value={userForm.status}
-                  onChange={v => setUserForm(p => ({ ...p, status: v }))}
-                  options={[{ value: 'active', label: t('users_active_chip') }, { value: 'inactive', label: t('users_inactive_chip') }]}
-                />
-              </div>
-              <div className="field" style={{ gridColumn: 'span 2' }}>
-                <label>{t('users_role_select_label')}</label>
-                <select multiple value={userForm.role_ids} onChange={e => {
-                  const vals = Array.from(e.target.selectedOptions).map(o => Number(o.value));
-                  setUserForm(p => ({ ...p, role_ids: vals }));
-                }} style={{ height: 100 }}>
-                  {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                </select>
-                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>{t('users_ctrl_hint')}</div>
-              </div>
-              <div className="field" style={{ gridColumn: 'span 2' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <input type="checkbox" checked={userForm.is_super_admin} onChange={e => setUserForm(p => ({ ...p, is_super_admin: e.target.checked }))} />
-                  Super Admin
-                </label>
-              </div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
+        <Modal
+          onClose={() => setShowCreateUser(false)}
+          title={t('users_create_user_modal')}
+          footer={
+            <>
               <button className="btn ghost" onClick={() => setShowCreateUser(false)}>{t('cancel')}</button>
               <button className="btn primary" onClick={createUser} disabled={savingUser}>
                 {savingUser ? t('saving') : t('users_create_action')}
               </button>
+            </>
+          }
+        >
+          <div className="form-row">
+            <div className="field col-span-2">
+              <label>{t('users_fio_label')} *</label>
+              <input value={userForm.full_name} onChange={e => setUserForm(p => ({ ...p, full_name: e.target.value }))} placeholder="" />
+            </div>
+            <div className="field">
+              <label>{t('profile_phone')} *</label>
+              <input value={userForm.phone} onChange={e => setUserForm(p => ({ ...p, phone: e.target.value }))} placeholder="+998901234567" />
+            </div>
+            <div className="field">
+              <label>Email</label>
+              <input value={userForm.email} onChange={e => setUserForm(p => ({ ...p, email: e.target.value }))} placeholder="email@example.com" />
+            </div>
+            <div className="field">
+              <label>{t('users_pwd_label')}</label>
+              <input type="password" value={userForm.password} onChange={e => setUserForm(p => ({ ...p, password: e.target.value }))} placeholder="••••••••" />
+            </div>
+            <div className="field">
+              <label>{t('users_col_status')}</label>
+              <SearchableSelect
+                value={userForm.status}
+                onChange={v => setUserForm(p => ({ ...p, status: v }))}
+                options={[{ value: 'active', label: t('users_active_chip') }, { value: 'inactive', label: t('users_inactive_chip') }]}
+              />
+            </div>
+            <div className="field col-span-2">
+              <label>{t('users_role_select_label')}</label>
+              <select multiple value={userForm.role_ids} onChange={e => {
+                const vals = Array.from(e.target.selectedOptions).map(o => Number(o.value));
+                setUserForm(p => ({ ...p, role_ids: vals }));
+              }} style={{ height: 100 }}>
+                {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+              </select>
+              <div className="hint">{t('users_ctrl_hint')}</div>
+            </div>
+            <div className="field col-span-2">
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input type="checkbox" checked={userForm.is_super_admin} onChange={e => setUserForm(p => ({ ...p, is_super_admin: e.target.checked }))} />
+                Super Admin
+              </label>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* Edit User Modal */}
       {editingUser && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', display: 'grid', placeItems: 'center', zIndex: 140 }} onClick={() => setEditingUser(null)}>
-          <div className="card" style={{ width: 520, padding: 18 }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <h3 style={{ margin: 0 }}>{t('users_edit_user_modal')}</h3>
-              <button className="icon-btn" style={{ width: 30, height: 30 }} onClick={() => setEditingUser(null)}><I.X size={15} /></button>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <div className="field" style={{ gridColumn: 'span 2' }}>
-                <label>{t('users_fio_label')} *</label>
-                <input value={editUserForm.full_name} onChange={e => setEditUserForm(p => ({ ...p, full_name: e.target.value }))} placeholder="" />
-              </div>
-              <div className="field">
-                <label>{t('profile_phone')} *</label>
-                <input value={editUserForm.phone} onChange={e => setEditUserForm(p => ({ ...p, phone: e.target.value }))} placeholder="+998901234567" />
-              </div>
-              <div className="field">
-                <label>Email</label>
-                <input value={editUserForm.email} onChange={e => setEditUserForm(p => ({ ...p, email: e.target.value }))} placeholder="email@example.com" />
-              </div>
-              <div className="field">
-                <label>{t('users_new_pwd_label')}</label>
-                <input type="password" value={editUserForm.password} onChange={e => setEditUserForm(p => ({ ...p, password: e.target.value }))} placeholder="" />
-              </div>
-              <div className="field">
-                <label>{t('users_col_status')}</label>
-                <SearchableSelect
-                  value={editUserForm.status}
-                  onChange={v => setEditUserForm(p => ({ ...p, status: v }))}
-                  options={[{ value: 'active', label: t('users_active_chip') }, { value: 'inactive', label: t('users_inactive_chip') }]}
-                />
-              </div>
-              {!editingUser.is_super_admin && (
-                <div className="field" style={{ gridColumn: 'span 2' }}>
-                  <label>{t('users_tab_roles')}</label>
-                  <select multiple value={editUserForm.role_ids} onChange={e => {
-                    const vals = Array.from(e.target.selectedOptions).map(o => Number(o.value));
-                    setEditUserForm(p => ({ ...p, role_ids: vals }));
-                  }} style={{ height: 100 }}>
-                    {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                  </select>
-                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>{t('users_ctrl_hint')}</div>
-                </div>
-              )}
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
+        <Modal
+          onClose={() => setEditingUser(null)}
+          title={t('users_edit_user_modal')}
+          footer={
+            <>
               <button className="btn ghost" onClick={() => setEditingUser(null)}>{t('cancel')}</button>
               <button className="btn primary" onClick={saveEditUser} disabled={savingEditUser}>
                 {savingEditUser ? t('saving') : t('save')}
               </button>
+            </>
+          }
+        >
+          <div className="form-row">
+            <div className="field col-span-2">
+              <label>{t('users_fio_label')} *</label>
+              <input value={editUserForm.full_name} onChange={e => setEditUserForm(p => ({ ...p, full_name: e.target.value }))} placeholder="" />
             </div>
+            <div className="field">
+              <label>{t('profile_phone')} *</label>
+              <input value={editUserForm.phone} onChange={e => setEditUserForm(p => ({ ...p, phone: e.target.value }))} placeholder="+998901234567" />
+            </div>
+            <div className="field">
+              <label>Email</label>
+              <input value={editUserForm.email} onChange={e => setEditUserForm(p => ({ ...p, email: e.target.value }))} placeholder="email@example.com" />
+            </div>
+            <div className="field">
+              <label>{t('users_new_pwd_label')}</label>
+              <input type="password" value={editUserForm.password} onChange={e => setEditUserForm(p => ({ ...p, password: e.target.value }))} placeholder="" />
+            </div>
+            <div className="field">
+              <label>{t('users_col_status')}</label>
+              <SearchableSelect
+                value={editUserForm.status}
+                onChange={v => setEditUserForm(p => ({ ...p, status: v }))}
+                options={[{ value: 'active', label: t('users_active_chip') }, { value: 'inactive', label: t('users_inactive_chip') }]}
+              />
+            </div>
+            {!editingUser.is_super_admin && (
+              <div className="field col-span-2">
+                <label>{t('users_tab_roles')}</label>
+                <select multiple value={editUserForm.role_ids} onChange={e => {
+                  const vals = Array.from(e.target.selectedOptions).map(o => Number(o.value));
+                  setEditUserForm(p => ({ ...p, role_ids: vals }));
+                }} style={{ height: 100 }}>
+                  {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                </select>
+                <div className="hint">{t('users_ctrl_hint')}</div>
+              </div>
+            )}
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* Edit Role Modal */}
       {editingRole && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', display: 'grid', placeItems: 'center', zIndex: 140 }} onClick={() => setEditingRole(null)}>
-          <div className="card" style={{ width: 500, padding: 18 }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <h3 style={{ margin: 0 }}>{t('users_edit_role_modal')}</h3>
-              <button className="icon-btn" style={{ width: 30, height: 30 }} onClick={() => setEditingRole(null)}><I.X size={15} /></button>
-            </div>
-            <div className="field" style={{ marginBottom: 10 }}>
-              <label>{t('users_role_name_req')}</label>
-              <input value={editingRole.name} onChange={e => setEditingRole(p => ({ ...p, name: e.target.value }))} />
-            </div>
-            <div className="field" style={{ marginBottom: 10 }}>
-              <label>{t('users_role_desc')}</label>
-              <input value={editingRole.description || ''} onChange={e => setEditingRole(p => ({ ...p, description: e.target.value }))} />
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>{t('users_perms_label')}</div>
-            <PermSelector
-              ids={editingRole.permission_ids}
-              onChange={ids => setEditingRole(p => ({ ...p, permission_ids: ids }))}
-              permissions={permissions}
-            />
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
+        <Modal
+          onClose={() => setEditingRole(null)}
+          title={t('users_edit_role_modal')}
+          footer={
+            <>
               <button className="btn ghost" onClick={() => setEditingRole(null)}>{t('cancel')}</button>
               <button className="btn primary" onClick={saveEditRole}><I.Check size={14} /> {t('save')}</button>
-            </div>
+            </>
+          }
+        >
+          <div className="field" style={{ marginBottom: 10 }}>
+            <label>{t('users_role_name_req')}</label>
+            <input value={editingRole.name} onChange={e => setEditingRole(p => ({ ...p, name: e.target.value }))} />
           </div>
-        </div>
+          <div className="field" style={{ marginBottom: 10 }}>
+            <label>{t('users_role_desc')}</label>
+            <input value={editingRole.description || ''} onChange={e => setEditingRole(p => ({ ...p, description: e.target.value }))} />
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>{t('users_perms_label')}</div>
+          <PermSelector
+            ids={editingRole.permission_ids}
+            onChange={ids => setEditingRole(p => ({ ...p, permission_ids: ids }))}
+            permissions={permissions}
+          />
+        </Modal>
       )}
     </div>
   );

@@ -56,7 +56,7 @@ export function Sidebar({ active, onNav, role, collapsed, onToggle, user, mobile
         })()}
       </nav>
       <div className="sidebar-footer">
-        <div className="avatar" style={{ background: 'var(--brand-red)' }}>
+        <div className="avatar">
           {getInitials(fullName)}
         </div>
         {!collapsed && (

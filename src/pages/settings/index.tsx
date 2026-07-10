@@ -70,8 +70,9 @@ import {
   apiGetAuditLogs,
 } from '@/shared/api';
 
-import { fmt } from '@/shared/lib/format';
+import { fmt, fmtDateTime } from '@/shared/lib/format';
 import { Stat } from '@/shared/ui/stat';
+import { DetailGrid } from '@/shared/ui/modal';
 
 export function SettingsScreen({ theme, setTheme } = {}) {
   const I = Icon;
@@ -225,13 +226,13 @@ export function SettingsScreen({ theme, setTheme } = {}) {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 14 }}>
-        <div className="card" style={{ padding: 10, height: 'fit-content' }}>
-          {tabDefs.map((t) => {
-            const Ic = t.icon;
-            const active = activeTab === t.id;
+        <div className="card" style={{ padding: 10, height: 'fit-content', display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {tabDefs.map((tab) => {
+            const Ic = tab.icon;
+            const active = activeTab === tab.id;
             return (
-              <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, border: 'none', marginBottom: 4, background: active ? 'var(--selected)' : 'transparent', color: active ? 'var(--navy-ink)' : 'var(--text-2)', fontWeight: active ? 700 : 500, cursor: 'pointer', fontSize: 13 }}>
-                <Ic size={15} /> {t.label}
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={'menu-item' + (active ? ' selected' : '')}>
+                <Ic size={15} /> {tab.label}
               </button>
             );
           })}
@@ -244,31 +245,33 @@ export function SettingsScreen({ theme, setTheme } = {}) {
               {rawSettings.length > 0 && (
                 <div style={{ marginTop: 20 }}>
                   <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 10 }}>{t('settings_all_settings')}</div>
-                  <table className="table">
-                    <thead><tr><th>{t('settings_col_key')}</th><th>{t('settings_col_value')}</th><th>{t('settings_col_desc')}</th></tr></thead>
-                    <tbody>
-                      {rawSettings.map((s) => (
-                        <tr key={s.id || s.key}>
-                          <td style={{ fontFamily: 'monospace', fontSize: 12.5, color: 'var(--muted)' }}>{s.key}</td>
-                          <td>
-                            <input
-                              value={settings[s.key] ?? s.value ?? ''}
-                              onChange={e => setVal(s.key, e.target.value)}
-                              style={{ width: '100%', height: 30, border: '1px solid var(--border)', borderRadius: 6, padding: '0 8px', background: 'var(--surface)', color: 'var(--text)', fontSize: 13 }}
-                            />
-                          </td>
-                          <td style={{ fontSize: 12, color: 'var(--muted)' }}>{s.description || '—'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <div className="table-wrap">
+                    <table className="table">
+                      <thead><tr><th>{t('settings_col_key')}</th><th>{t('settings_col_value')}</th><th>{t('settings_col_desc')}</th></tr></thead>
+                      <tbody>
+                        {rawSettings.map((s) => (
+                          <tr key={s.id || s.key}>
+                            <td style={{ fontFamily: 'monospace', fontSize: 12.5, color: 'var(--muted)' }}>{s.key}</td>
+                            <td>
+                              <input
+                                value={settings[s.key] ?? s.value ?? ''}
+                                onChange={e => setVal(s.key, e.target.value)}
+                                style={{ width: '100%', height: 30, border: '1px solid var(--border)', borderRadius: 6, padding: '0 8px', background: 'var(--surface)', color: 'var(--text)', fontSize: 13 }}
+                              />
+                            </td>
+                            <td style={{ fontSize: 12, color: 'var(--muted)' }}>{s.description || '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </div>
           )}
 
           {activeTab === 'billing' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="form-row">
               <div className="field"><label>{t('settings_currency')}</label><input value={settings.currency || "so'm"} onChange={(e) => setVal('currency', e.target.value)} /></div>
               <div className="field"><label>{t('settings_default_monthly')}</label><input type="number" value={settings.monthly_fee_default || settings.default_monthly_fee || ''} onChange={(e) => setVal('monthly_fee_default', Number(e.target.value))} /></div>
               <div className="field"><label>{t('settings_late_fee')}</label><input type="number" value={settings.late_fee_percent || ''} onChange={(e) => setVal('late_fee_percent', Number(e.target.value))} /></div>
@@ -290,7 +293,7 @@ export function SettingsScreen({ theme, setTheme } = {}) {
               <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>
                 {t('settings_import_desc')}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 20 }}>
+              <div className="grid-3" style={{ gap: 8, marginBottom: 20 }}>
                 {[
                   ['first_name', t('import_col_first_name'), true],
                   ['last_name', t('import_col_last_name'), true],
@@ -326,7 +329,7 @@ export function SettingsScreen({ theme, setTheme } = {}) {
               </button>
 
               {importResult && (
-                <div style={{ marginTop: 16, padding: 14, borderRadius: 10, background: importResult.ok ? 'var(--success-soft)' : 'var(--accent-soft)', border: '1px solid ' + (importResult.ok ? 'var(--success)' : 'var(--brand-red)') }}>
+                <div style={{ marginTop: 16, padding: 14, borderRadius: 10, background: importResult.ok ? 'var(--success-soft)' : 'var(--danger-soft)', border: '1px solid ' + (importResult.ok ? 'var(--success)' : 'var(--danger)') }}>
                   {importResult.ok ? (
                     <div>
                       <div style={{ fontWeight: 700, color: 'var(--success)', marginBottom: 6 }}>{t('settings_import_ok')}</div>
@@ -345,7 +348,7 @@ export function SettingsScreen({ theme, setTheme } = {}) {
                       )}
                     </div>
                   ) : (
-                    <div style={{ color: 'var(--brand-red)', fontWeight: 600 }}>{importResult.message}</div>
+                    <div style={{ color: 'var(--danger)', fontWeight: 600 }}>{importResult.message}</div>
                   )}
                 </div>
               )}
@@ -377,20 +380,16 @@ export function SettingsScreen({ theme, setTheme } = {}) {
               {backupLoading ? (
                 <div style={{ color: 'var(--muted)', fontSize: 13 }}>{t('loading')}</div>
               ) : backupStatus ? (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                  {Object.entries(backupStatus).map(([k, v]) => (
-                    <div key={k} style={{ padding: '10px 14px', background: 'var(--surface-2)', borderRadius: 10, border: '1px solid var(--border)' }}>
-                      <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{k.replace(/_/g, ' ')}</div>
-                      <div style={{ marginTop: 4, fontSize: 13.5, fontWeight: 600, wordBreak: 'break-all' }}>
-                        {typeof v === 'boolean' ? (v ? t('yes') : t('no')) : String(v ?? '—')}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <DetailGrid
+                  items={Object.entries(backupStatus).map(([k, v]) => ({
+                    label: k.replace(/_/g, ' '),
+                    value: typeof v === 'boolean' ? (v ? t('yes') : t('no'))
+                      : typeof v === 'string' && /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(v) ? fmtDateTime(v)
+                      : String(v ?? '—'),
+                  }))}
+                />
               ) : (
-                <div style={{ padding: 20, background: 'var(--surface-2)', borderRadius: 10, fontSize: 13, color: 'var(--muted)', textAlign: 'center' }}>
-                  {t('settings_backup_not_found')}
-                </div>
+                <div className="empty">{t('settings_backup_not_found')}</div>
               )}
             </div>
           )}
@@ -411,18 +410,14 @@ export function SettingsScreen({ theme, setTheme } = {}) {
               {adminLoading ? (
                 <div style={{ color: 'var(--muted)', fontSize: 13 }}>{t('loading')}</div>
               ) : archiveStats ? (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                  {Object.entries(archiveStats).map(([k, v]) => (
-                    <div key={k} style={{ padding: '10px 14px', background: 'var(--surface-2)', borderRadius: 10, border: '1px solid var(--border)' }}>
-                      <div style={{ fontSize: 11.5, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{k.replace(/_/g, ' ')}</div>
-                      <div style={{ marginTop: 4, fontSize: 13.5, fontWeight: 600 }}>{String(v ?? '—')}</div>
-                    </div>
-                  ))}
-                </div>
+                <DetailGrid
+                  items={Object.entries(archiveStats).map(([k, v]) => ({
+                    label: k.replace(/_/g, ' '),
+                    value: String(v ?? '—'),
+                  }))}
+                />
               ) : (
-                <div style={{ padding: 20, background: 'var(--surface-2)', borderRadius: 10, fontSize: 13, color: 'var(--muted)', textAlign: 'center' }}>
-                  {t('settings_no_data')}
-                </div>
+                <div className="empty">{t('settings_no_data')}</div>
               )}
             </div>
           )}
