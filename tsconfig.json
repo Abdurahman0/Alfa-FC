@@ -14,7 +14,11 @@
     "strict": true,
     "allowJs": true,
     "checkJs": false,
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
   },
-  "include": ["src", "app.jsx", "shell.jsx", "screens-1.jsx", "screens-2.jsx", "screens-3.jsx", "screens-4.jsx", "tweaks-panel.jsx"]
+  "include": ["src"]
 }

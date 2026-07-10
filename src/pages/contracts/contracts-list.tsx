@@ -1,0 +1,318 @@
+// @ts-nocheck
+import React from 'react';
+import { Icon } from '@/shared/ui/icons';
+import { SearchableGroupSelect, SearchableSelect } from '@/shared/ui/controls';
+import { useT } from '@/shared/i18n/lang';
+import {
+  apiGetContracts,
+  apiGetContract,
+  apiGetContractPdf,
+  apiRegenerateContractPdf,
+  apiGetContractStats,
+  apiTerminateContract,
+  apiPatchContractMonthlyFee,
+  apiPatchContractDates,
+  apiPatchContractStatus,
+  apiGetGateLogs,
+  apiGetGroups,
+  apiGetUsers,
+  apiCreateUser,
+  apiUpdateUser,
+  apiDeleteUser,
+  apiUpdateUserRoles,
+  apiGetRoles,
+  apiCreateRole,
+  apiUpdateRole,
+  apiDeleteRole,
+  apiGetPermissions,
+  apiGetSettings,
+  apiGetSettingsRaw,
+  apiUpdateSettings,
+  apiGetArchiveStats,
+  apiArchiveYear,
+  apiUnarchiveYear,
+  apiTriggerManualBackup,
+  apiGetBackupStatus,
+  apiImportStudents,
+  apiGetTransactions,
+  apiGetTransactionsWithName,
+  apiGetTransaction,
+  apiGetUnassignedTransactions,
+  apiGetTransactionStats,
+  apiCreateManualTransaction,
+  apiCancelTransaction,
+  apiAssignTransaction,
+  apiGetReportsSummary,
+  apiGetAttendanceGroupsReport,
+  apiGetReportsTerminatedSummary,
+  apiGetDebtors,
+  apiGetFinanceReport,
+  apiGetPayers,
+  apiDebtorsExportUrl,
+  apiDownloadDebtors,
+  apiDownloadPayers,
+  apiPayersExportUrl,
+  apiPaymentsExcelUrl,
+  apiDownloadPaymentsExcel,
+  apiGetWaitingList,
+  apiCreateWaitingList,
+  apiUpdateWaitingList,
+  apiDeleteWaitingList,
+  apiGetStudent,
+  apiGetStudentTransactions,
+  apiDeleteUsersBulk,
+  apiGetTerminatedContracts,
+  apiUpdateContract,
+  apiDeleteTransaction,
+  apiDeleteTransactionsBulk,
+  apiCreateManualTransactionWithProof,
+  apiGetWaitingListNext,
+  apiGetAuditLogs,
+} from '@/shared/api';
+
+import { fmt } from '@/shared/lib/format';
+import { Stat } from '@/shared/ui/stat';
+
+import { statusChip } from './status-chip';
+
+// ─── Contracts ───────────────────────────────────────────────────────────────
+
+export function ContractsScreen({ onOpenContract, onNavigateToStudent, onToast }) {
+  const I = Icon;
+  const { t } = useT();
+  const [contracts, setContracts] = React.useState([]);
+  const [terminated, setTerminated] = React.useState([]);
+  const [stats, setStats] = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
+  const [query, setQuery] = React.useState('');
+  const [statusFilter, setStatusFilter] = React.useState('all');
+  const [tab, setTab] = React.useState('active');
+  const [page, setPage] = React.useState(1);
+  const [totalPages, setTotalPages] = React.useState(1);
+  const [totalCount, setTotalCount] = React.useState(0);
+  const [terminating, setTerminating] = React.useState(null);
+  const [terminateReason, setTerminateReason] = React.useState('');
+  const [terminateAt, setTerminateAt] = React.useState('');
+  const [terminateModal, setTerminateModal] = React.useState(false);
+  const PAGE_SIZE = 10;
+
+  async function loadActive(overrides = {}) {
+    setLoading(true);
+    try {
+      const params = { page: overrides.page ?? page, page_size: PAGE_SIZE };
+      if (overrides.query !== undefined ? overrides.query : query) params.search = overrides.query !== undefined ? overrides.query : query;
+      if ((overrides.status !== undefined ? overrides.status : statusFilter) !== 'all') params.status = overrides.status !== undefined ? overrides.status : statusFilter;
+      const [cRes, sRes] = await Promise.allSettled([
+        apiGetContracts(params),
+        apiGetContractStats(),
+      ]);
+      const cData = cRes.status === 'fulfilled' ? cRes.value : null;
+      setContracts(cData?.data || []);
+      setTotalPages(cData?.meta?.total_pages || 1);
+      setTotalCount(cData?.meta?.total || 0);
+      setStats(sRes.status === 'fulfilled' ? (sRes.value?.data || null) : null);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadTerminated(overrides = {}) {
+    setLoading(true);
+    try {
+      const res = await apiGetTerminatedContracts({ page: overrides.page ?? page, page_size: PAGE_SIZE });
+      setTerminated(res?.data || []);
+      setTotalPages(res?.meta?.total_pages || 1);
+      setTotalCount(res?.meta?.total || 0);
+    } catch {
+      setTerminated([]);
+      setTotalPages(1);
+      setTotalCount(0);
+    } finally { setLoading(false); }
+  }
+
+  React.useEffect(() => {
+    apiGetContractStats().then(r => setStats(r?.data || null)).catch(() => {});
+  }, []);
+
+  React.useEffect(() => {
+    setPage(1);
+    if (tab === 'terminated') { loadTerminated({ page: 1 }); return; }
+    const timer = setTimeout(() => {
+      loadActive({ page: 1, query, status: statusFilter });
+    }, query ? 400 : 0);
+    return () => clearTimeout(timer);
+  }, [query, statusFilter, tab]);
+
+  function openTerminate(contract) {
+    setTerminating(contract);
+    setTerminateReason('');
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    setTerminateAt(now.toISOString().slice(0, 16));
+    setTerminateModal(true);
+  }
+
+  async function confirmTerminate() {
+    if (!terminating || !terminateReason.trim()) return;
+    try {
+      await apiTerminateContract(terminating.id, {
+        termination_reason: terminateReason,
+        terminated_at: terminateAt ? new Date(terminateAt).toISOString() : new Date().toISOString(),
+      });
+      setTerminateModal(false);
+      onToast?.(t('toast_contract_terminated'));
+      loadActive({ page: 1 });
+    } catch (e) {
+      onToast?.(e.message);
+    }
+  }
+
+  const rows = tab === 'terminated' ? terminated : contracts;
+
+  return (
+    <div>
+      <div className="page-head">
+        <div>
+          <h1 className="page-title">{t('contracts_title')}</h1>
+          <div className="page-sub">{totalCount} ta {t('nav_contracts').toLowerCase()}</div>
+        </div>
+      </div>
+
+      {stats && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12, marginBottom: 14 }}>
+          <Stat label={t('all')} value={stats.total || 0} icon={I.FileText} />
+          <Stat label={t('status_active')} value={stats.active || 0} tone="success" icon={I.Check} />
+          <Stat label={t('status_terminated')} value={stats.terminated || 0} tone="danger" icon={I.XCircle} />
+          <Stat label={t('status_cancelled')} value={stats.expired || 0} tone="warning" icon={I.Clock} />
+          <Stat label={t('contracts_total_monthly')} value={`${fmt.format(stats.total_monthly_fee || 0)} so'm`} tone="navy" icon={I.Wallet} />
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+        {[
+          { key: 'active', labelKey: 'status_active' },
+          { key: 'terminated', labelKey: 'status_terminated' },
+        ].map(tb => (
+          <button
+            key={tb.key}
+            className={`btn${tab === tb.key ? ' primary' : ' ghost'}`}
+            style={{ fontSize: 13 }}
+            onClick={() => { setPage(1); setTab(tb.key); }}
+          >
+            {t(tb.labelKey)}
+          </button>
+        ))}
+      </div>
+
+      <div className="table-wrap">
+        <div className="table-toolbar">
+          <div className="search" style={{ maxWidth: 320 }}>
+            <span className="icon-l"><I.Search size={15} /></span>
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('contracts_search')} />
+          </div>
+          {tab === 'active' && (
+            <SearchableSelect
+              value={statusFilter}
+              onChange={v => setStatusFilter(v)}
+              options={[
+                { value: 'all', label: t('contracts_all_statuses') },
+                { value: 'ACTIVE', label: t('status_active') },
+                { value: 'EXPIRED', label: t('status_cancelled') },
+                { value: 'ARCHIVED', label: t('status_archived') },
+              ]}
+            />
+          )}
+          <div style={{ marginLeft: 'auto', fontSize: 12.5, color: 'var(--muted)' }}>{rows.length} {t('students_results')}</div>
+        </div>
+
+        {loading ? (
+          <div className="empty" style={{ padding: 32 }}>{t('loading')}</div>
+        ) : (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>{t('contracts_col_number')}</th>
+                <th>{t('contracts_col_student')}</th>
+                <th>{t('contracts_col_start')} / {t('contracts_col_end')}</th>
+                <th>{t('contracts_col_fee')}</th>
+                <th>{t('contracts_col_status')}</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.length === 0 && (
+                <tr><td colSpan={7} style={{ padding: 18, color: 'var(--muted)' }}>{t('contracts_not_found')}</td></tr>
+              )}
+              {rows.map((c) => (
+                <tr key={c.id} onClick={() => onOpenContract?.(c.id)} style={{ cursor: 'pointer' }}>
+                  <td style={{ fontWeight: 700 }}>{c.contract_number}</td>
+                  <td onClick={c.student_id ? e => { e.stopPropagation(); onNavigateToStudent?.(c.student_id); } : undefined}
+                    style={{ color: 'var(--text-2)', ...(c.student_id && onNavigateToStudent ? { cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'var(--muted)' } : {}) }}>
+                    {c.customer_full_name ?? c.custom_fields?.customer?.full_name ?? '—'}
+                  </td>
+                  <td style={{ fontVariantNumeric: 'tabular-nums', fontSize: 12.5 }}>
+                    {c.contract_start_date ?? c.start_date ?? '—'} <span style={{ color: 'var(--muted)' }}>→</span> {c.contract_end_date ?? c.end_date ?? '—'}
+                  </td>
+                  <td style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{fmt.format(c.monthly_fee_amount ?? c.monthly_fee ?? 0)} so'm</td>
+                  <td>{statusChip(c.status, t)}</td>
+                  <td onClick={e => e.stopPropagation()}>
+                    {c.status === 'ACTIVE' && (
+                      <button className="btn ghost sm" style={{ color: 'var(--brand-red)', fontSize: 12 }} onClick={() => openTerminate(c)}>
+                        <I.XCircle size={13} /> {t('contracts_terminate')}
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 6, padding: '10px 0' }}>
+            <button className="btn ghost sm" disabled={page <= 1} onClick={() => {
+              const p = page - 1;
+              setPage(p);
+              if (tab === 'terminated') loadTerminated({ page: p });
+              else loadActive({ page: p });
+            }}>‹ {t('prev')}</button>
+            <span style={{ lineHeight: '30px', fontSize: 13, color: 'var(--muted)' }}>{page} / {totalPages}</span>
+            <button className="btn ghost sm" disabled={page >= totalPages} onClick={() => {
+              const p = page + 1;
+              setPage(p);
+              if (tab === 'terminated') loadTerminated({ page: p });
+              else loadActive({ page: p });
+            }}>{t('next')} ›</button>
+          </div>
+        )}
+      </div>
+
+      {terminateModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay)', display: 'grid', placeItems: 'center', zIndex: 140 }} onClick={() => setTerminateModal(false)}>
+          <div className="card" style={{ width: 440, padding: 18 }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <h3 style={{ margin: 0 }}>{t('contracts_terminate_title')}</h3>
+              <button className="icon-btn" style={{ width: 30, height: 30 }} onClick={() => setTerminateModal(false)}><I.X size={15} /></button>
+            </div>
+            <div style={{ marginBottom: 8, fontSize: 13, color: 'var(--muted)' }}>{t('nav_contracts')}: <strong>{terminating?.contract_number}</strong></div>
+            <div className="field" style={{ marginBottom: 12 }}>
+              <label>{t('transactions_comment')} *</label>
+              <textarea rows={3} value={terminateReason} onChange={e => setTerminateReason(e.target.value)} placeholder="" />
+            </div>
+            <div className="field" style={{ marginBottom: 14 }}>
+              <label>{t('contracts_terminated_at')} *</label>
+              <input type="datetime-local" value={terminateAt} onChange={e => setTerminateAt(e.target.value)} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button className="btn ghost" onClick={() => setTerminateModal(false)}>{t('cancel')}</button>
+              <button className="btn" style={{ background: 'var(--brand-red)', color: '#fff', border: 'none' }} onClick={confirmTerminate} disabled={!terminateReason.trim()}>
+                <I.XCircle size={14} /> {t('contracts_terminate')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
