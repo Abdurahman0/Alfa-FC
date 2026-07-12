@@ -5,28 +5,6 @@ import { apiGetDashboard, apiGetGroups, apiGetSessions } from '@/shared/api';
 import { useT } from '@/shared/i18n/lang';
 import { fmtDate } from '@/shared/lib/format';
 
-function MiniSpark({ values, color = 'var(--accent)', height = 42 }) {
-  const max = Math.max(...values), min = Math.min(...values);
-  const range = max - min || 1;
-  const W = 200, H = height;
-  const step = W / (values.length - 1);
-  const points = values.map((v, i) => `${(i * step).toFixed(1)},${(H - ((v - min) / range) * (H - 10) - 5).toFixed(1)}`).join(' ');
-  const area = `0,${H} ${points} ${W},${H}`;
-  const gid = React.useId();
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: '100%', height, display: 'block' }}>
-      <defs>
-        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.22"/>
-          <stop offset="100%" stopColor={color} stopOpacity="0"/>
-        </linearGradient>
-      </defs>
-      <polygon points={area} fill={`url(#${gid})`}/>
-      <polyline points={points} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
-}
-
 function fmtMln(v) {
   if (!v) return '0';
   return (v / 1_000_000).toFixed(1) + ' mln';
@@ -56,7 +34,6 @@ export function Dashboard({ role, onNav, onOpenGroup }) {
 
   const m30 = summary?.last_30_days;
   const inflow30 = m30?.total_inflow || 0;
-  const trendPoints = m30?.trend?.map(p => p.inflow) || [0];
   const openRoute = (route) => onNav?.(route);
   const onActionKey = (e, action) => {
     if (e.key !== 'Enter' && e.key !== ' ') return;
@@ -80,10 +57,10 @@ export function Dashboard({ role, onNav, onOpenGroup }) {
 
       <div className="grid-4">
         {[
-          { labelKey: 'dashboard_stat_active_students', value: loading ? '...' : (summary?.active_students ?? '-'), spark: [60,62,64,68,70,75,78,80,82,84], color: 'var(--accent)', icon: <I.Users size={18}/>, route: 'students' },
-          { labelKey: 'dashboard_stat_today_sessions', value: loading ? '...' : (summary?.today_sessions ?? '-'), spark: [2,3,2,3,4,3,4,3,4,3], color: 'var(--success)', icon: <I.Calendar size={18}/>, soft: 'var(--success-soft)', route: 'sessions' },
-          { labelKey: 'dashboard_stat_monthly', value: loading ? '...' : fmtMln(inflow30), spark: trendPoints.length > 1 ? trendPoints : [0,1], color: 'var(--warning)', icon: <I.TrendingUp size={18}/>, soft: 'var(--warning-soft)', route: 'transactions' },
-          { labelKey: 'dashboard_stat_debtors', value: loading ? '...' : (summary?.total_debtors ?? '-'), spark: [8,9,8,10,11,10,9,10,11,12], color: 'var(--danger)', icon: <I.AlertTriangle size={18}/>, soft: 'var(--danger-soft)', route: 'reports' },
+          { labelKey: 'dashboard_stat_active_students', value: loading ? '...' : (summary?.active_students ?? '-'), color: 'var(--accent)', icon: <I.Users size={18}/>, route: 'students' },
+          { labelKey: 'dashboard_stat_today_sessions', value: loading ? '...' : (summary?.today_sessions ?? '-'), color: 'var(--success)', icon: <I.Calendar size={18}/>, soft: 'var(--success-soft)', route: 'sessions' },
+          { labelKey: 'dashboard_stat_monthly', value: loading ? '...' : fmtMln(inflow30), color: 'var(--warning)', icon: <I.TrendingUp size={18}/>, soft: 'var(--warning-soft)', route: 'transactions' },
+          { labelKey: 'dashboard_stat_debtors', value: loading ? '...' : (summary?.total_debtors ?? '-'), color: 'var(--danger)', icon: <I.AlertTriangle size={18}/>, soft: 'var(--danger-soft)', route: 'reports-debtors' },
         ].map(s => (
           <div
             key={s.labelKey}
@@ -100,9 +77,6 @@ export function Dashboard({ role, onNav, onOpenGroup }) {
               </div>
             </div>
             <div className="stat-value">{s.value}</div>
-            <div className="stat-spark">
-              <MiniSpark values={s.spark} color={s.color}/>
-            </div>
           </div>
         ))}
       </div>

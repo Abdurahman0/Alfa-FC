@@ -5,7 +5,7 @@ import { useT } from '@/shared/i18n/lang';
 import { ROLE_PERMISSIONS } from '@/shared/lib/rbac';
 import { getInitials } from '@/shared/lib/avatar';
 import { revealFrom } from '@/shared/lib/view-transition';
-import { ACCENTS, BACKGROUNDS, DEFAULT_APPEARANCE, loadAppearance, saveAppearance, applyAppearance, isDefaultAppearance } from '@/shared/lib/appearance';
+import { ACCENTS, DEFAULT_APPEARANCE, loadAppearance, saveAppearance, applyAppearance, isDefaultAppearance } from '@/shared/lib/appearance';
 
 export function Topbar({ crumbs, role, onRoleSwitch, canSwitchRole, theme, onTheme, onSignOut, user, onNavigate, onMenu }) {
   const I = Icon;
@@ -163,26 +163,6 @@ function AppearancePanel({ t }) {
                     outline: active ? '2px solid var(--text)' : '2px solid transparent', outlineOffset: 2,
                     transition: 'transform 120ms ease', transform: active ? 'scale(1.08)' : 'scale(1)' }}>
                   {active && <I.Check size={13} color="#fff"/>}
-                </button>
-              );
-            })}
-            <label title={t('appearance_custom')} style={{ width: 26, height: 26, borderRadius: '50%', cursor: 'pointer', overflow: 'hidden', position: 'relative', border: '1.5px dashed var(--border-strong)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'conic-gradient(from 0deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)' }}>
-              <input type="color" value={prefs.accent}
-                onChange={(e) => update({ accent: e.target.value }, e, false)}
-                style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }}/>
-            </label>
-          </div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.07em', margin: '16px 0 10px' }}>{t('appearance_bg')}</div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {BACKGROUNDS.map(b => {
-              const active = (prefs.bg || 'neutral') === b.id;
-              return (
-                <button key={b.id} type="button" onClick={(e) => update({ bg: b.id }, e)} title={b.id}
-                  style={{ width: 40, height: 28, borderRadius: 8, cursor: 'pointer', padding: 0, overflow: 'hidden',
-                    border: active ? '2px solid var(--text)' : '1px solid var(--border-strong)',
-                    display: 'flex' }}>
-                  <span style={{ flex: 1, background: b.light }}/>
-                  <span style={{ flex: 1, background: b.dark }}/>
                 </button>
               );
             })}

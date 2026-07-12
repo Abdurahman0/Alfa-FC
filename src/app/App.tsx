@@ -141,6 +141,7 @@ export default function App() {
   if (route === 'roles') crumbKeys.push('crumb_roles');
   if (route === 'settings') crumbKeys.push('nav_settings');
   if (route === 'reports') crumbKeys.push('nav_reports');
+  if (route === 'reports-debtors') { crumbKeys.push('nav_reports'); crumbKeys.push('rpt_debtors'); activeNav = 'reports'; }
   if (route === 'waiting-list') crumbKeys.push('nav_waiting_list');
   if (route === 'audit-logs') crumbKeys.push('nav_audit_logs');
 
@@ -194,7 +195,8 @@ export default function App() {
             />
           )}
           {route === 'settings' && <SettingsScreen theme={T.theme} setTheme={(th) => T.setTweak('theme', th)}/>} 
-          {route === 'reports' && <ReportsScreen/>} 
+          {route === 'reports' && <ReportsScreen/>}
+          {route === 'reports-debtors' && <ReportsScreen initialTab="debtors"/>} 
           {route === 'waiting-list' && <WaitingListScreen onToast={showToast}/>}
           {route === 'audit-logs' && <AuditLogsScreen/>}
         </div>

@@ -9,17 +9,9 @@
 
 const KEY = 'alpha_appearance';
 
-export const DEFAULT_APPEARANCE = { accent: '#C8202C', bg: 'neutral' };
+export const DEFAULT_APPEARANCE = { accent: '#C8202C' };
 
 export const ACCENTS = ['#C8202C', '#2563EB', '#0E9F6E', '#7C3AED', '#DB2777', '#D97706', '#0891B2', '#101D42'];
-
-export const BACKGROUNDS = [
-  { id: 'neutral', light: '#F5F6F8', dark: '#0B101E' },
-  { id: 'warm', light: '#F8F6F0', dark: '#141109' },
-  { id: 'cool', light: '#F0F4FA', dark: '#0A1424' },
-  { id: 'sage', light: '#F1F6F0', dark: '#0C1510' },
-  { id: 'rose', light: '#F9F3F5', dark: '#170E14' },
-];
 
 function hexToRgb(hex) {
   const h = hex.replace('#', '');
@@ -80,7 +72,7 @@ export function saveAppearance(a) {
 }
 
 export function isDefaultAppearance(a) {
-  return a.accent === DEFAULT_APPEARANCE.accent && a.bg === DEFAULT_APPEARANCE.bg;
+  return a.accent === DEFAULT_APPEARANCE.accent;
 }
 
 export function applyAppearance(a = loadAppearance()) {
@@ -94,19 +86,23 @@ export function applyAppearance(a = loadAppearance()) {
     el.id = 'alpha-appearance';
     document.head.appendChild(el);
   }
-  const bg = BACKGROUNDS.find(b => b.id === a.bg) || BACKGROUNDS[0];
   const acc = a.accent || DEFAULT_APPEARANCE.accent;
   const accDark = accentForDark(acc);
+  // One color drives everything: the page background is the accent washed
+  // almost to white (light) / almost to black (dark), so picking a color
+  // re-tints the whole canvas together with buttons, nav and rings.
+  const bgLight = mix(acc, '#F7F8FA', 0.95);
+  const bgDark = mix(accDark, '#0A0E1A', 0.93);
   el.textContent = `
 :root {
   --accent: ${acc};
   --accent-contrast: ${contrastOn(acc)};
-  --bg-base: ${bg.light};
+  --bg-base: ${bgLight};
 }
 [data-theme="dark"] {
   --accent: ${accDark};
   --accent-contrast: ${contrastOn(accDark)};
-  --bg-base: ${bg.dark};
+  --bg-base: ${bgDark};
 }
 `;
 }

@@ -74,10 +74,10 @@ import {
 import { fmt } from '@/shared/lib/format';
 import { Stat } from '@/shared/ui/stat';
 
-export function ReportsScreen() {
+export function ReportsScreen({ initialTab = 'dashboard' } = {}) {
   const I = Icon;
   const { t } = useT();
-  const [tab, setTab] = React.useState('dashboard');
+  const [tab, setTab] = React.useState(initialTab);
   const [summary, setSummary] = React.useState(null);
   const [financeReport, setFinanceReport] = React.useState(null);
   const [txStats, setTxStats] = React.useState(null);
