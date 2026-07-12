@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React from 'react';
 import { Icon } from '@/shared/ui/icons';
+import { DateInput, DateTimeInput } from '@/shared/ui/date-picker';
 import { SearchableGroupSelect, SearchableSelect } from '@/shared/ui/controls';
 import { useT } from '@/shared/i18n/lang';
 import {
@@ -306,7 +307,7 @@ export function ContractsScreen({ onOpenContract, onNavigateToStudent, onToast }
           </div>
           <div className="field">
             <label>{t('contracts_terminated_at')} *</label>
-            <input type="datetime-local" value={terminateAt} onChange={e => setTerminateAt(e.target.value)} />
+            <DateTimeInput value={terminateAt} onChange={setTerminateAt} />
           </div>
         </Modal>
       )}

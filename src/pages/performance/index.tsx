@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React from 'react';
 import { Icon } from '@/shared/ui/icons';
+import { DateInput, DateTimeInput } from '@/shared/ui/date-picker';
 import {
   apiGetGroups, apiGetHeadCoachGroups, apiGetGroup, apiGetGroupStudents, apiCreateGroup, apiUpdateGroup, apiDeleteGroup, apiDeleteGroupsBulk,
   apiGetSessions, apiGetSessionDetails, apiGetCoachSessionDetails, apiCreateSession,
@@ -349,7 +350,7 @@ export function PerformanceTable() {
           )}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div className="field"><label>{t('field_date')} <span className="req">*</span></label><input type="date" value={newMatch.match_date} onChange={e => setNewMatch(p => ({ ...p, match_date: e.target.value }))} /></div>
+            <div className="field"><label>{t('field_date')} <span className="req">*</span></label><DateInput value={newMatch.match_date} onChange={v => setNewMatch(p => ({ ...p, match_date: v }))} /></div>
             <div className="field"><label>{t('field_opponent')} <span className="req">*</span></label><input value={newMatch.opponent} onChange={e => setNewMatch(p => ({ ...p, opponent: e.target.value }))} placeholder="Masalan: Almaty FC"/></div>
             <div className="field"><label>{t('field_tour')}</label><input value={newMatch.tour_label} onChange={e => setNewMatch(p => ({ ...p, tour_label: e.target.value }))} placeholder="Masalan: 1-tur"/></div>
           </div>
@@ -372,7 +373,7 @@ export function PerformanceTable() {
           )}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div className="field"><label>{t('field_date')} <span className="req">*</span></label><input type="date" value={editMatchForm.match_date} onChange={e => setEditMatchForm(p => ({ ...p, match_date: e.target.value }))} /></div>
+            <div className="field"><label>{t('field_date')} <span className="req">*</span></label><DateInput value={editMatchForm.match_date} onChange={v => setEditMatchForm(p => ({ ...p, match_date: v }))} /></div>
             <div className="field"><label>{t('field_opponent')} <span className="req">*</span></label><input value={editMatchForm.opponent} onChange={e => setEditMatchForm(p => ({ ...p, opponent: e.target.value }))} placeholder="Masalan: Almaty FC"/></div>
             <div className="field"><label>{t('field_tour')}</label><input value={editMatchForm.tour_label} onChange={e => setEditMatchForm(p => ({ ...p, tour_label: e.target.value }))} placeholder="Masalan: 1-tur"/></div>
           </div>

@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React from 'react';
 import { Icon } from '@/shared/ui/icons';
+import { DateInput, DateTimeInput } from '@/shared/ui/date-picker';
 import { SearchableGroupSelect, SearchableSelect } from '@/shared/ui/controls';
 import { useT } from '@/shared/i18n/lang';
 import {
@@ -74,6 +75,40 @@ import { fmt, fmtDateTime } from '@/shared/lib/format';
 import { Stat } from '@/shared/ui/stat';
 import { Modal, DetailGrid } from '@/shared/ui/modal';
 
+
+function trOrNull(t, key) {
+  const v = t(key);
+  return v && v !== key ? v : null;
+}
+
+/** Compose a localized description from structured fields; raw description is the fallback. */
+function describeLog(r, t) {
+  const name = String(r.entity_label || (r.entity_id ? `#${r.entity_id}` : '')).trim();
+  const entity = trOrNull(t, 'audit_ent_' + r.entity_type) || r.entity_type || '';
+  const a = String(r.action || '').toUpperCase();
+  const x = r.extra || {};
+  if (a === 'LOGIN') {
+    const tpl = trOrNull(t, 'audit_desc_login');
+    if (tpl) return tpl.replace('{name}', name);
+  }
+  if (a === 'UPDATE' && r.entity_type === 'student' && x.group_name) {
+    const tpl = trOrNull(t, 'audit_desc_group_change');
+    if (tpl) return tpl.replace('{name}', name).replace('{group}', x.group_name);
+  }
+  const map = { CREATE: 'create', UPDATE: 'update', PATCH: 'update', DELETE: 'delete', CANCEL: 'cancel', TERMINATE: 'terminate' };
+  const tpl = map[a] && trOrNull(t, 'audit_desc_' + map[a]);
+  if (tpl && entity) return tpl.replace('{entity}', entity).replace('{name}', name);
+  return r.description || '\u2014';
+}
+
+/** Known extra fields rendered as label/value rows; unknown keys are skipped here. */
+function extraRows(extra, t) {
+  if (!extra || typeof extra !== 'object') return [];
+  const known = ['contract_number', 'group_name', 'group_id', 'topic', 'deleted_attendances'];
+  return known.filter(k => extra[k] !== undefined && extra[k] !== null)
+    .map(k => ({ label: trOrNull(t, 'audit_x_' + k) || k, value: String(extra[k]) }));
+}
+
 export function AuditLogsScreen() {
   const I = Icon;
   const { t } = useT();
@@ -124,12 +159,13 @@ export function AuditLogsScreen() {
 
   function actionChip(a) {
     const s = String(a || '').toUpperCase();
-    if (s === 'CREATE') return <span className="chip success">{a}</span>;
-    if (s === 'UPDATE' || s === 'PATCH') return <span className="chip warning">{a}</span>;
-    if (s === 'DELETE') return <span className="chip danger">{a}</span>;
-    if (s === 'LOGIN') return <span className="chip navy">{a}</span>;
-    if (s === 'CANCEL' || s === 'TERMINATE') return <span className="chip danger">{a}</span>;
-    return <span className="chip">{a || '—'}</span>;
+    const label = trOrNull(t, 'audit_act_' + s) || a;
+    if (s === 'CREATE') return <span className="chip success">{label}</span>;
+    if (s === 'UPDATE' || s === 'PATCH') return <span className="chip warning">{label}</span>;
+    if (s === 'DELETE') return <span className="chip danger">{label}</span>;
+    if (s === 'LOGIN') return <span className="chip navy">{label}</span>;
+    if (s === 'CANCEL' || s === 'TERMINATE') return <span className="chip danger">{label}</span>;
+    return <span className="chip">{label || '—'}</span>;
   }
 
   const hasFilters = entityType || action || fromDate || toDate || search || userFilter;
@@ -150,13 +186,13 @@ export function AuditLogsScreen() {
           onChange={v => { setEntityType(v); setPage(1); }}
           options={[
             { value: '', label: `${t('all')} ${t('audit_col_entity').toLowerCase()}` },
-            { value: 'student', label: 'student' },
-            { value: 'user', label: 'user' },
-            { value: 'contract', label: 'contract' },
-            { value: 'session', label: 'session' },
-            { value: 'group', label: 'group' },
-            { value: 'transaction', label: 'transaction' },
-            { value: 'attendance', label: 'attendance' },
+            { value: 'student', label: t('audit_ent_student') },
+            { value: 'user', label: t('audit_ent_user') },
+            { value: 'contract', label: t('audit_ent_contract') },
+            { value: 'session', label: t('audit_ent_session') },
+            { value: 'group', label: t('audit_ent_group') },
+            { value: 'transaction', label: t('audit_ent_transaction') },
+            { value: 'attendance', label: t('audit_ent_attendance') },
           ]}
         />
         <SearchableSelect
@@ -164,16 +200,16 @@ export function AuditLogsScreen() {
           onChange={v => { setAction(v); setPage(1); }}
           options={[
             { value: '', label: `${t('all')} ${t('audit_col_action').toLowerCase()}` },
-            { value: 'CREATE', label: 'CREATE' },
-            { value: 'UPDATE', label: 'UPDATE' },
-            { value: 'DELETE', label: 'DELETE' },
-            { value: 'LOGIN', label: 'LOGIN' },
-            { value: 'CANCEL', label: 'CANCEL' },
-            { value: 'TERMINATE', label: 'TERMINATE' },
+            { value: 'CREATE', label: t('audit_act_CREATE') },
+            { value: 'UPDATE', label: t('audit_act_UPDATE') },
+            { value: 'DELETE', label: t('audit_act_DELETE') },
+            { value: 'LOGIN', label: t('audit_act_LOGIN') },
+            { value: 'CANCEL', label: t('audit_act_CANCEL') },
+            { value: 'TERMINATE', label: t('audit_act_TERMINATE') },
           ]}
         />
-        <input type="date" value={fromDate} onChange={e => { setFromDate(e.target.value); setPage(1); }} style={{ height: 36, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)', color: 'var(--text)', fontSize: 13 }} />
-        <input type="date" value={toDate} onChange={e => { setToDate(e.target.value); setPage(1); }} style={{ height: 36, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)', color: 'var(--text)', fontSize: 13 }} />
+        <DateInput value={fromDate} onChange={v => { setFromDate(v); setPage(1); }} placeholder={t('cal_from')} />
+        <DateInput value={toDate} onChange={v => { setToDate(v); setPage(1); }} placeholder={t('cal_to')} />
         <SearchableSelect
           value={userFilter}
           onChange={v => { setUserFilter(v); setPage(1); }}
@@ -217,9 +253,9 @@ export function AuditLogsScreen() {
                   <td style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', fontSize: 12.5 }}>{fmtDateTime(r.created_at)}</td>
                   <td style={{ fontSize: 13 }}>{r.user_full_name || `#${r.user_id || '—'}`}</td>
                   <td>{actionChip(r.action)}</td>
-                  <td><span className="chip">{r.entity_type || '—'}</span></td>
+                  <td><span className="chip">{trOrNull(t, 'audit_ent_' + r.entity_type) || r.entity_type || '—'}</span></td>
                   <td style={{ fontSize: 13 }}>{r.entity_label || (r.entity_id ? `#${r.entity_id}` : '—')}</td>
-                  <td style={{ fontSize: 12.5, color: 'var(--muted)', maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.description || '—'}</td>
+                  <td style={{ fontSize: 12.5, color: 'var(--muted)', maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{describeLog(r, t)}</td>
                 </tr>
               ))}
             </tbody>
@@ -242,14 +278,17 @@ export function AuditLogsScreen() {
             { label: t('audit_detail_date'), value: fmtDateTime(detail.created_at) },
             { label: t('audit_detail_user'), value: detail.user_full_name || `#${detail.user_id}` },
             { label: t('audit_detail_action'), value: actionChip(detail.action) },
-            { label: t('audit_detail_entity_type'), value: detail.entity_type },
+            { label: t('audit_detail_entity_type'), value: trOrNull(t, 'audit_ent_' + detail.entity_type) || detail.entity_type },
             { label: t('audit_detail_entity_id'), value: detail.entity_id },
             { label: t('audit_detail_entity_name'), value: detail.entity_label },
           ]} />
-          {detail.description && (
-            <div className="detail-item" style={{ marginTop: 10 }}>
-              <div className="label">{t('audit_detail_desc')}</div>
-              <div className="value" style={{ fontWeight: 500 }}>{detail.description}</div>
+          <div className="detail-item" style={{ marginTop: 10 }}>
+            <div className="label">{t('audit_detail_desc')}</div>
+            <div className="value" style={{ fontWeight: 500 }}>{describeLog(detail, t)}</div>
+          </div>
+          {extraRows(detail.extra, t).length > 0 && (
+            <div style={{ marginTop: 10 }}>
+              <DetailGrid items={extraRows(detail.extra, t)} />
             </div>
           )}
           {detail.extra && (

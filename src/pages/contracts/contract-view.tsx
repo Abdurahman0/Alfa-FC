@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React from 'react';
 import { Icon } from '@/shared/ui/icons';
+import { DateInput, DateTimeInput } from '@/shared/ui/date-picker';
 import { SearchableGroupSelect, SearchableSelect } from '@/shared/ui/controls';
 import { useT } from '@/shared/i18n/lang';
 import {
@@ -412,7 +413,7 @@ export function ContractView({ contractId, onBack, onToast, onNavigateToStudent 
           </div>
           <div className="field">
             <label>{t('contracts_cancel_date_field')}</label>
-            <input type="datetime-local" value={terminateAt} onChange={e => setTerminateAt(e.target.value)} />
+            <DateTimeInput value={terminateAt} onChange={setTerminateAt} />
           </div>
         </Modal>
       )}
@@ -452,11 +453,11 @@ export function ContractView({ contractId, onBack, onToast, onNavigateToStudent 
         >
           <div className="field" style={{ marginBottom: 10 }}>
             <label>{t('contracts_start_date')} *</label>
-            <input type="date" value={datesForm.start_date} onChange={e => setDatesForm(f => ({ ...f, start_date: e.target.value }))} />
+            <DateInput value={datesForm.start_date} onChange={v => setDatesForm(f => ({ ...f, start_date: v }))} />
           </div>
           <div className="field">
             <label>{t('contracts_end_date')} *</label>
-            <input type="date" value={datesForm.end_date} onChange={e => setDatesForm(f => ({ ...f, end_date: e.target.value }))} />
+            <DateInput value={datesForm.end_date} onChange={v => setDatesForm(f => ({ ...f, end_date: v }))} />
           </div>
         </Modal>
       )}

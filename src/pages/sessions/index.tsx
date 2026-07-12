@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React from 'react';
 import { Icon } from '@/shared/ui/icons';
+import { DateInput, DateTimeInput } from '@/shared/ui/date-picker';
 import {
   apiGetGroups, apiGetHeadCoachGroups, apiGetGroup, apiGetGroupStudents, apiCreateGroup, apiUpdateGroup, apiDeleteGroup, apiDeleteGroupsBulk,
   apiGetSessions, apiGetSessionDetails, apiGetCoachSessionDetails, apiCreateSession,
@@ -429,7 +430,7 @@ export function SessionsScreen({ onMark }) {
             </div>
             <div className="field">
               <label>{t('sessions_date')} <span className="req">*</span></label>
-              <input type="date" value={newSession.session_date} onChange={e => setNewSession(p => ({ ...p, session_date: e.target.value }))} />
+              <DateInput value={newSession.session_date} onChange={v => setNewSession(p => ({ ...p, session_date: v }))} />
             </div>
             <div className="field">
               <label>{t('sessions_topic')} <span className="req">*</span></label>
@@ -470,7 +471,7 @@ export function SessionsScreen({ onMark }) {
             </div>
             <div className="field">
               <label>{t('sessions_col_date')} <span className="req">*</span></label>
-              <input type="date" value={editForm.session_date} onChange={e => setEditForm(p => ({ ...p, session_date: e.target.value }))} />
+              <DateInput value={editForm.session_date} onChange={v => setEditForm(p => ({ ...p, session_date: v }))} />
             </div>
             <div className="field">
               <label>{t('sessions_topic')} <span className="req">*</span></label>
@@ -512,11 +513,11 @@ export function SessionsScreen({ onMark }) {
             </div>
             <div className="field">
               <label>{t('bulk_from_date')} <span className="req">*</span></label>
-              <input type="date" value={bulkForm.from_date} onChange={e => setBulkForm(p => ({ ...p, from_date: e.target.value }))} />
+              <DateInput value={bulkForm.from_date} onChange={v => setBulkForm(p => ({ ...p, from_date: v }))} />
             </div>
             <div className="field">
               <label>{t('bulk_to_date')} <span className="req">*</span></label>
-              <input type="date" value={bulkForm.to_date} onChange={e => setBulkForm(p => ({ ...p, to_date: e.target.value }))} />
+              <DateInput value={bulkForm.to_date} onChange={v => setBulkForm(p => ({ ...p, to_date: v }))} />
             </div>
             <div className="field col-span-2">
               <label>{t('bulk_weekdays')} <span className="req">*</span></label>

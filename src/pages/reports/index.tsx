@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React from 'react';
 import { Icon } from '@/shared/ui/icons';
+import { DateInput, DateTimeInput } from '@/shared/ui/date-picker';
 import { SearchableGroupSelect, SearchableSelect } from '@/shared/ui/controls';
 import { useT } from '@/shared/i18n/lang';
 import {
@@ -299,11 +300,11 @@ export function ReportsScreen() {
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
             <div className="field" style={{ margin: 0 }}>
               <label style={{ fontSize: 12 }}>{t('rpt_from')}</label>
-              <input type="date" value={financeFrom} onChange={e => setFinanceFrom(e.target.value)} style={{ height: 38, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)', color: 'var(--text)' }} />
+              <DateInput value={financeFrom} onChange={setFinanceFrom} placeholder={t('cal_from')} />
             </div>
             <div className="field" style={{ margin: 0 }}>
               <label style={{ fontSize: 12 }}>{t('rpt_to')}</label>
-              <input type="date" value={financeTo} onChange={e => setFinanceTo(e.target.value)} style={{ height: 38, padding: '0 10px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)', color: 'var(--text)' }} />
+              <DateInput value={financeTo} onChange={setFinanceTo} placeholder={t('cal_to')} />
             </div>
           </div>
 
