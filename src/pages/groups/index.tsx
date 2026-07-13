@@ -40,7 +40,7 @@ function GroupFormFields({ form, setForm, coaches }) {
   );
 }
 
-export function GroupsScreen({ onOpen, selectedGroupId = null, onCloseGroup, onToast } = {}) {
+export function GroupsScreen({ onOpen, selectedGroupId = null, onCloseGroup, onToast, onOpenStudent } = {}) {
   const I = Icon;
   const { t } = useT();
   const [groups, setGroups] = React.useState([]);
@@ -281,7 +281,20 @@ export function GroupsScreen({ onOpen, selectedGroupId = null, onCloseGroup, onT
               ) : (
                 <div className="list-stack">
                   {groupStudents.map((s) => (
-                    <div key={s.id} className="list-row">
+                    <div
+                      key={s.id}
+                      className="list-row"
+                      role={onOpenStudent ? 'button' : undefined}
+                      tabIndex={onOpenStudent ? 0 : undefined}
+                      style={onOpenStudent ? { cursor: 'pointer' } : undefined}
+                      onClick={() => { if (onOpenStudent) { onCloseGroup?.(); onOpenStudent(s.id); } }}
+                      onKeyDown={(e) => {
+                        if (!onOpenStudent || (e.key !== 'Enter' && e.key !== ' ')) return;
+                        e.preventDefault();
+                        onCloseGroup?.();
+                        onOpenStudent(s.id);
+                      }}
+                    >
                       <div className="avatar sm" style={{ background: avatarColor(s.id) }}>{s.first_name?.[0]}{s.last_name?.[0]}</div>
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <div style={{ fontSize: 13.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.first_name} {s.last_name}</div>
@@ -290,6 +303,7 @@ export function GroupsScreen({ onOpen, selectedGroupId = null, onCloseGroup, onT
                       <span className={'chip' + (s.status === 'active' ? ' success' : '')} style={{ fontSize: 11 }}>
                         {s.status === 'active' ? t('status_active') : s.status || '—'}
                       </span>
+                      {onOpenStudent && <Icon.ChevronRight size={15} style={{ color: 'var(--muted)', flexShrink: 0 }}/>}
                     </div>
                   ))}
                 </div>
