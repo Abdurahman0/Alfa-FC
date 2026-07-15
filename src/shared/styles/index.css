@@ -250,6 +250,7 @@ input::placeholder, textarea::placeholder, select::placeholder {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
   overflow: hidden;
 }
 .content {
@@ -257,6 +258,9 @@ input::placeholder, textarea::placeholder, select::placeholder {
   overflow: auto;
   padding: 26px 30px 64px;
   min-width: 0;
+  /* flex items refuse to shrink below content height without this —
+     tall pages (new student form) would get clipped instead of scrolling */
+  min-height: 0;
 }
 
 /* ---------- Sidebar ----------
