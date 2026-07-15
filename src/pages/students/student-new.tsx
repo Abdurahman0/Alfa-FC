@@ -101,14 +101,14 @@ export function StudentNew({ onBack, onCreated, onViewContract }) {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 22, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: 6 }}>
+      <div className="stepper">
         {steps.map((label, i) => {
           const n = i + 1;
           const active = step === n;
           const done = step > n && stepValid[n];
           const incomplete = step > n && !stepValid[n];
           return (
-            <div key={n} onClick={() => setStep(n)} style={{ flex: 1, padding: '10px 14px', borderRadius: 6, background: active ? 'var(--selected)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div key={n} className="stepper-step" onClick={() => setStep(n)} style={{ background: active ? 'var(--selected)' : 'transparent' }}>
               <div style={{ width: 24, height: 24, borderRadius: '50%', background: done ? 'var(--success)' : incomplete ? 'var(--warning)' : active ? 'var(--primary)' : 'var(--surface-2)', color: done || incomplete || active ? 'white' : 'var(--muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>
                 {done ? <I.Check size={14}/> : incomplete ? '!' : n}
               </div>

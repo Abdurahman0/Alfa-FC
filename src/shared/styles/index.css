@@ -711,6 +711,35 @@ input::placeholder, textarea::placeholder, select::placeholder {
   color: var(--accent);
 }
 
+/* ---------- Stepper (multi-step forms) ---------- */
+
+.stepper {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 22px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 6px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+}
+.stepper-step {
+  flex: 1 0 auto;
+  min-width: max-content;
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+  transition: background 120ms var(--ease);
+}
+.stepper-step:hover { background: var(--hover); }
+
 /* ---------- Dashboard ---------- */
 
 .dashboard-panels {
