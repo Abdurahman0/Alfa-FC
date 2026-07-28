@@ -102,7 +102,7 @@ export function ContractView({ contractId, onBack, onToast, onNavigateToStudent 
   const [newStatus, setNewStatus] = React.useState('');
 
   async function load() {
-    if (!contractId) return;
+    if (!contractId) { setLoading(false); return; }
     setLoading(true);
     try {
       const res = await apiGetContract(contractId);

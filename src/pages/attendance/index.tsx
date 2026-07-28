@@ -30,7 +30,7 @@ export function AttendanceMark({ sessionId, onBack }) {
   const [uploadingKonspekt, setUploadingKonspekt] = React.useState(false);
 
   React.useEffect(() => {
-    if (!sessionId) return;
+    if (!sessionId) { setLoading(false); return; }
     apiGetCoachSessionDetails(sessionId).then(async (sRes) => {
       const sess = sRes?.data;
       setSession(sess);

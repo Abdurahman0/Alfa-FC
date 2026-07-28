@@ -39,9 +39,9 @@ export default function App() {
   const [authLoading, setAuthLoading] = React.useState(() => !!getToken());
   const [route, setRoute] = React.useState(() => localStorage.getItem('alpha_route') || 'dashboard');
   const [studentId, setStudentId] = React.useState(() => localStorage.getItem('alpha_student_id'));
-  const [sessionId, setSessionId] = React.useState(null);
-  const [groupId, setGroupId] = React.useState(null);
-  const [contractId, setContractId] = React.useState(null);
+  const [sessionId, setSessionId] = React.useState(() => localStorage.getItem('alpha_session_id'));
+  const [groupId, setGroupId] = React.useState(() => localStorage.getItem('alpha_group_id'));
+  const [contractId, setContractId] = React.useState(() => localStorage.getItem('alpha_contract_id'));
   const [navCollapsed, setNavCollapsed] = React.useState(false);
   const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
   const [toast, setToast] = React.useState(null);
@@ -83,6 +83,19 @@ export default function App() {
       localStorage.setItem('alpha_student_id', String(studentId));
     }
   }, [studentId]);
+  // Persist selected ids so detail routes survive a page refresh
+  React.useEffect(() => {
+    if (sessionId == null) localStorage.removeItem('alpha_session_id');
+    else localStorage.setItem('alpha_session_id', String(sessionId));
+  }, [sessionId]);
+  React.useEffect(() => {
+    if (groupId == null) localStorage.removeItem('alpha_group_id');
+    else localStorage.setItem('alpha_group_id', String(groupId));
+  }, [groupId]);
+  React.useEffect(() => {
+    if (contractId == null) localStorage.removeItem('alpha_contract_id');
+    else localStorage.setItem('alpha_contract_id', String(contractId));
+  }, [contractId]);
   React.useEffect(() => { document.documentElement.setAttribute('data-theme', T.theme); }, [T.theme]);
   React.useEffect(() => { document.documentElement.setAttribute('data-density', T.density); }, [T.density]);
 
