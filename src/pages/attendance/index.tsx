@@ -6,7 +6,7 @@ import {
   apiGetSessions, apiGetSessionDetails, apiGetCoachSessionDetails, apiCreateSession,
   apiUpdateSession, apiDeleteSession, apiCreateHeadCoachSessionsBulk,
   apiGetCoaches, apiDownloadGroupStudentsExport, apiDownloadCoachGroupPerformanceTableExport,
-  apiMarkAttendance, apiMarkBulkAttendance, apiAddPerformanceTableMatch,
+  apiMarkAttendance, apiUpdateAttendance, apiMarkBulkAttendance, apiAddPerformanceTableMatch,
   apiSaveCoachGroupPerformanceTable, apiDeleteCoachPerformanceTableColumn, apiUpdateCoachPerformanceTableColumn,
   apiUploadCoachSessionKonspekt, apiGetCoachMyAttendances,
 } from '@/shared/api';
@@ -45,7 +45,49 @@ export function AttendanceMark({ sessionId, onBack }) {
     }).catch(() => {}).finally(() => setLoading(false));
   }, [sessionId]);
 
-  function setMark(id, status) { setMarks(prev => ({ ...prev, [id]: status })); }
+  const [rowSaving, setRowSaving] = React.useState({});
+
+  // Optimistic per-click save: status goes to the backend immediately,
+  // reverts on failure. POST first, PUT when the record already exists.
+  async function setMark(id, status) {
+    const prev = marks[id] || 'present';
+    setMarks(p => ({ ...p, [id]: status }));
+    if (prev === status) return;
+    setRowSaving(p => ({ ...p, [id]: true }));
+    const payload = { student_id: id, status, comment: comments[id] || undefined };
+    try {
+      try {
+        await apiMarkAttendance(sessionId, payload);
+      } catch {
+        await apiUpdateAttendance(sessionId, payload);
+      }
+    } catch (e) {
+      setMarks(p => ({ ...p, [id]: prev }));
+      alert(e.message);
+    } finally {
+      setRowSaving(p => ({ ...p, [id]: false }));
+    }
+  }
+
+  async function markAll(status) {
+    const prevMarks = marks;
+    const next = {};
+    students.forEach(s => { next[s.id] = status; });
+    setMarks(next);
+    setSaving(true);
+    try {
+      await apiMarkBulkAttendance(sessionId, students.map(s => ({
+        student_id: s.id,
+        status,
+        comment: comments[s.id] || undefined,
+      })));
+    } catch (e) {
+      setMarks(prevMarks);
+      alert(e.message);
+    } finally {
+      setSaving(false);
+    }
+  }
 
   const counts = { present: 0, absent: 0, late: 0 };
   Object.values(marks).forEach(m => { if (counts[m] !== undefined) counts[m]++; });
@@ -113,10 +155,10 @@ export function AttendanceMark({ sessionId, onBack }) {
       {students.length > 0 && (
         <div className="card" style={{ marginBottom: 14, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 12.5, color: 'var(--muted)' }}>{t('att_mark_all')}</span>
-          <button className="btn sm" onClick={() => { const m = {}; students.forEach(s => m[s.id] = 'present'); setMarks(m); }}>
+          <button className="btn sm" disabled={saving} onClick={() => markAll('present')}>
             <I.Check size={13} color="var(--success)"/> {t('att_btn_present')}
           </button>
-          <button className="btn sm" onClick={() => { const m = {}; students.forEach(s => m[s.id] = 'absent'); setMarks(m); }}>
+          <button className="btn sm" disabled={saving} onClick={() => markAll('absent')}>
             <I.X size={13} color="var(--danger)"/> {t('att_btn_absent')}
           </button>
           <div style={{ flex: 1 }}></div>
@@ -157,7 +199,7 @@ export function AttendanceMark({ sessionId, onBack }) {
                           const Ic = I[b.icon];
                           const sel = m === b.k;
                           return (
-                            <button key={b.k} onClick={() => setMark(s.id, b.k)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8, border: '1px solid ' + (sel ? b.color : 'var(--border)'), background: sel ? b.soft : 'var(--surface)', color: sel ? b.color : 'var(--text-2)', fontWeight: sel ? 700 : 500, fontSize: 12.5, cursor: 'pointer' }}>
+                            <button key={b.k} disabled={rowSaving[s.id]} onClick={() => setMark(s.id, b.k)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8, border: '1px solid ' + (sel ? b.color : 'var(--border)'), background: sel ? b.soft : 'var(--surface)', color: sel ? b.color : 'var(--text-2)', fontWeight: sel ? 700 : 500, fontSize: 12.5, cursor: 'pointer', opacity: rowSaving[s.id] ? 0.6 : 1 }}>
                               <Ic size={13}/> {b.l}
                             </button>
                           );
