@@ -7,10 +7,16 @@ import { hasPerm } from '@/shared/lib/rbac';
 import { getInitials } from '@/shared/lib/avatar';
 import { NAV_ITEMS } from './nav-config';
 
-export function Sidebar({ active, onNav, role, collapsed, onToggle, user, mobileOpen }) {
+export function Sidebar({ active, onNav, role, userPermissions = [], collapsed, onToggle, user, mobileOpen }) {
   const I = Icon;
   const { t } = useT();
   const fullName = user?.full_name || user?.name || user?.email || 'Alpha User';
+  // Backend permissions (incl. per-user grants) extend the local role map,
+  // so personally-granted sections appear in the nav too.
+  const grantedPerms = React.useMemo(
+    () => new Set((userPermissions || []).map(p => typeof p === 'string' ? p : (p?.code || p?.name)).filter(Boolean)),
+    [userPermissions]
+  );
   return (
     <aside className={'sidebar' + (mobileOpen ? ' mobile-open' : '')}>
       <div className="sidebar-header">
@@ -25,7 +31,7 @@ export function Sidebar({ active, onNav, role, collapsed, onToggle, user, mobile
           const seen = new Set();
           return NAV_ITEMS.map(section => {
             const visible = section.items.filter(it => {
-              if (!hasPerm(role, it.perm)) return false;
+              if (!hasPerm(role, it.perm) && !grantedPerms.has(it.perm)) return false;
               if (seen.has(it.id)) return false;
               seen.add(it.id);
               return true;

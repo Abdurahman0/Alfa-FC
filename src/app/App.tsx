@@ -168,6 +168,7 @@ export default function App() {
           navigate(id);
         }}
         role={T.role}
+        userPermissions={permissions}
         collapsed={navCollapsed}
         onToggle={() => mobileNavOpen ? setMobileNavOpen(false) : setNavCollapsed(!navCollapsed)}
         user={currentUser}
