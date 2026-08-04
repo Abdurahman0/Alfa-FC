@@ -1577,7 +1577,7 @@ input::placeholder, textarea::placeholder, select::placeholder {
 
 .cal-pop {
   position: fixed;
-  z-index: 700;
+  z-index: 5500; /* popover layer: above modals (5000), below toasts (6000) */
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 14px;
