@@ -64,7 +64,8 @@ export default function App() {
         if (res.user?.is_super_admin) {
           roleName = 'Super Admin';
         } else {
-          const rawRole = res.user?.roles?.[0]?.name;
+          // ignore hidden per-user permission roles ("__user_<id>")
+          const rawRole = res.user?.roles?.filter(r => !String(r?.name || '').startsWith('__user_'))?.[0]?.name;
           roleName = (rawRole ? normalizeRoleName(rawRole) : null) || rawRole || 'Coach';
         }
         setTweak('role', roleName);

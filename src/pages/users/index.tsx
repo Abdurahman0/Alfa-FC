@@ -187,6 +187,79 @@ export function UsersScreen({ initialView = 'users', onToast } = {}) {
   const [deletingUserId, setDeletingUserId] = React.useState(null);
   const [menuPos, setMenuPos] = React.useState({ x: 0, y: 0 });
 
+  // Per-user permissions. The backend only knows roles, so each user's extra
+  // permissions live in a hidden auto-managed role named "__user_<id>" that is
+  // created/updated/deleted here and filtered out of every role list in the UI.
+  const PERSONAL_PREFIX = '__user_';
+  const isPersonalRole = (r) => (r?.name || '').startsWith(PERSONAL_PREFIX);
+  const visibleRoles = roles.filter(r => !isPersonalRole(r));
+  const regularRolesOf = (u) => (u.roles || []).filter(r => !isPersonalRole(r));
+  const personalRoleOf = (u) => {
+    const attached = (u.roles || []).find(isPersonalRole);
+    // resolve through the full roles list so we get its permissions
+    return roles.find(r => r.name === PERSONAL_PREFIX + u.id) ||
+      (attached ? roles.find(r => r.id === attached.id) : null) || attached || null;
+  };
+  const [permUser, setPermUser] = React.useState(null);
+  const [permExtraIds, setPermExtraIds] = React.useState([]);
+  const [savingPerms, setSavingPerms] = React.useState(false);
+
+  function rolePermIds(u) {
+    const ids = new Set();
+    regularRolesOf(u).forEach(ur => {
+      const full = roles.find(r => r.id === ur.id);
+      (full?.permissions || []).forEach(p => ids.add(p.id));
+    });
+    return ids;
+  }
+
+  function openUserPerms(u) {
+    const personal = personalRoleOf(u);
+    setPermExtraIds((personal?.permissions || []).map(p => p.id));
+    setPermUser(u);
+    setOpenMenuUserId(null);
+  }
+
+  async function saveUserPerms() {
+    if (!permUser) return;
+    setSavingPerms(true);
+    try {
+      const name = PERSONAL_PREFIX + permUser.id;
+      const base = rolePermIds(permUser);
+      const extras = permExtraIds.filter(id => !base.has(id));
+      const regularIds = regularRolesOf(permUser).map(r => r.id);
+      const existing = roles.find(r => r.name === name);
+      if (extras.length === 0) {
+        if (existing) {
+          await apiUpdateUserRoles(permUser.id, regularIds);
+          await apiDeleteRole(existing.id);
+        }
+      } else {
+        let personalId = existing?.id;
+        const description = `Shaxsiy ruxsatlar: ${permUser.full_name || permUser.id}`;
+        if (existing) {
+          await apiUpdateRole(existing.id, { name, description, permission_ids: extras });
+        } else {
+          const res = await apiCreateRole({ name, description, permission_ids: extras });
+          personalId = res?.data?.id;
+          if (!personalId) {
+            const rr = await apiGetRoles();
+            personalId = (rr?.data || []).find(r => r.name === name)?.id;
+          }
+        }
+        if (!personalId) throw new Error('Personal role not created');
+        await apiUpdateUserRoles(permUser.id, [...regularIds, personalId]);
+      }
+      setPermUser(null);
+      onToast?.(t('toast_perms_saved'));
+      load();
+    } catch (e) {
+      onToast?.(e.message);
+    } finally {
+      setSavingPerms(false);
+    }
+  }
+
   async function load() {
     setLoading(true);
     try {
@@ -295,7 +368,7 @@ export function UsersScreen({ initialView = 'users', onToast } = {}) {
       email: u.email || '',
       password: '',
       status: u.status || 'active',
-      role_ids: (u.roles || []).map(r => r.id),
+      role_ids: regularRolesOf(u).map(r => r.id),
     });
     setOpenMenuUserId(null);
   }
@@ -312,7 +385,11 @@ export function UsersScreen({ initialView = 'users', onToast } = {}) {
       };
       if (editUserForm.password) payload.password = editUserForm.password;
       await apiUpdateUser(editingUser.id, payload);
-      await apiUpdateUserRoles(editingUser.id, editUserForm.role_ids.map(Number));
+      // keep the hidden personal-permissions role attached across role edits
+      const personal = personalRoleOf(editingUser);
+      const ids = editUserForm.role_ids.map(Number);
+      if (personal?.id && !ids.includes(personal.id)) ids.push(personal.id);
+      await apiUpdateUserRoles(editingUser.id, ids);
       setEditingUser(null);
       onToast?.(t('toast_user_updated'));
       load();
@@ -427,8 +504,11 @@ export function UsersScreen({ initialView = 'users', onToast } = {}) {
                     <td>
                       {u.is_super_admin
                         ? <span className="chip navy">Super Admin</span>
-                        : (u.roles || []).length > 0
-                          ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>{(u.roles).map(r => <span key={r.id} className="chip navy">{r.name}</span>)}</div>
+                        : (regularRolesOf(u).length > 0 || personalRoleOf(u))
+                          ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                              {regularRolesOf(u).map(r => <span key={r.id} className="chip navy">{r.name}</span>)}
+                              {personalRoleOf(u) && <span className="chip accent" title={t('users_perms_menu')}>+{(personalRoleOf(u)?.permissions || []).length}</span>}
+                            </div>
                           : <span className="chip">—</span>
                       }
                     </td>
@@ -449,6 +529,11 @@ export function UsersScreen({ initialView = 'users', onToast } = {}) {
                           <button className="menu-item" onClick={() => openEditUser(u)}>
                             <I.Edit size={14} /> {t('edit')}
                           </button>
+                          {!u.is_super_admin && (
+                            <button className="menu-item" onClick={() => openUserPerms(u)}>
+                              <I.Shield size={14} /> {t('users_perms_menu')}
+                            </button>
+                          )}
                           {!u.is_super_admin && (
                             <button className="menu-item danger" onClick={() => deleteUser(u.id)} disabled={deletingUserId === u.id}>
                               <I.Trash2 size={14} /> {deletingUserId === u.id ? t('deleting') : t('delete')}
@@ -471,8 +556,8 @@ export function UsersScreen({ initialView = 'users', onToast } = {}) {
             <table className="table">
               <thead><tr><th>{t('users_role_name_col')}</th><th>{t('users_perms_col')}</th><th style={{ width: 72 }}></th></tr></thead>
               <tbody>
-                {roles.length === 0 && <tr><td colSpan={3} style={{ padding: 18, color: 'var(--muted)' }}>{t('users_role_no_found')}</td></tr>}
-                {roles.map((r) => (
+                {visibleRoles.length === 0 && <tr><td colSpan={3} style={{ padding: 18, color: 'var(--muted)' }}>{t('users_role_no_found')}</td></tr>}
+                {visibleRoles.map((r) => (
                   <tr key={r.id}>
                     <td>
                       <div style={{ fontWeight: 600 }}>{r.name}</div>
@@ -569,7 +654,7 @@ export function UsersScreen({ initialView = 'users', onToast } = {}) {
                 const vals = Array.from(e.target.selectedOptions).map(o => Number(o.value));
                 setUserForm(p => ({ ...p, role_ids: vals }));
               }} style={{ height: 100 }}>
-                {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                {visibleRoles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
               </select>
               <div className="hint">{t('users_ctrl_hint')}</div>
             </div>
@@ -629,12 +714,60 @@ export function UsersScreen({ initialView = 'users', onToast } = {}) {
                   const vals = Array.from(e.target.selectedOptions).map(o => Number(o.value));
                   setEditUserForm(p => ({ ...p, role_ids: vals }));
                 }} style={{ height: 100 }}>
-                  {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                  {visibleRoles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                 </select>
                 <div className="hint">{t('users_ctrl_hint')}</div>
               </div>
             )}
           </div>
+        </Modal>
+      )}
+
+      {/* Per-user permissions modal */}
+      {permUser && (
+        <Modal
+          onClose={() => setPermUser(null)}
+          title={t('users_perms_title')}
+          subtitle={permUser.full_name}
+          footer={
+            <>
+              <button className="btn ghost" onClick={() => setPermUser(null)}>{t('cancel')}</button>
+              <button className="btn primary" onClick={saveUserPerms} disabled={savingPerms}>
+                {savingPerms ? t('saving') : t('save')}
+              </button>
+            </>
+          }
+        >
+          {(() => {
+            const base = rolePermIds(permUser);
+            const basePerms = permissions.filter(p => base.has(p.id));
+            const extraCandidates = permissions.filter(p => !base.has(p.id));
+            return (
+              <>
+                {basePerms.length > 0 && (
+                  <div style={{ marginBottom: 14 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                      {t('users_perms_from_roles')}
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                      {basePerms.map(p => (
+                        <span key={p.id} className="chip navy" style={{ fontSize: 10.5 }}>{p.description}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                  {t('users_perms_extra')}
+                </div>
+                <div className="hint" style={{ fontSize: 11.5, color: 'var(--muted)', marginBottom: 8 }}>{t('users_perms_hint')}</div>
+                <PermSelector
+                  ids={permExtraIds}
+                  onChange={setPermExtraIds}
+                  permissions={extraCandidates}
+                />
+              </>
+            );
+          })()}
         </Modal>
       )}
 
