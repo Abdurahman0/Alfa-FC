@@ -82,7 +82,7 @@ function CalendarPop({ anchorRef, value, onPick, lang, t, withTime, time, onTime
   const yearBase = view.y - (view.y % 12);
 
   return createPortal(
-    <div ref={popRef} className="cal-pop" style={{ top: pos.top, left: pos.left, width: W }}>
+    <div ref={popRef} className="cal-pop" style={{ top: pos.top, left: pos.left, width: W, zIndex: 5500 }}>
       <div className="cal-head">
         <button type="button" className="cal-nav" onClick={() => nav(-1)}><Icon.ChevronLeft size={15}/></button>
         <button type="button" className="cal-label" onClick={() => setMode(mode === 'days' ? 'months' : mode === 'months' ? 'years' : 'days')}>
