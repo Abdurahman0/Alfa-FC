@@ -3,7 +3,7 @@ import React from 'react';
 import { Icon } from '@/shared/ui/icons';
 import { DateInput, DateTimeInput } from '@/shared/ui/date-picker';
 import {
-  apiGetGroups, apiGetHeadCoachGroups, apiGetGroup, apiGetGroupStudents, apiCreateGroup, apiUpdateGroup, apiDeleteGroup, apiDeleteGroupsBulk,
+  apiGetGroups, apiGetGroupsForSelect, apiGetHeadCoachGroups, apiGetGroup, apiGetGroupStudents, apiCreateGroup, apiUpdateGroup, apiDeleteGroup, apiDeleteGroupsBulk,
   apiGetSessions, apiGetSessionDetails, apiGetCoachSessionDetails, apiCreateSession,
   apiUpdateSession, apiDeleteSession, apiCreateHeadCoachSessionsBulk,
   apiGetCoaches, apiDownloadGroupStudentsExport, apiDownloadCoachGroupPerformanceTableExport,
@@ -66,13 +66,13 @@ export function SessionsScreen({ onMark }) {
     setLoading(true);
     const params = {};
     if (groupFilter) params.group_id = groupFilter;
-    Promise.all([
+    Promise.allSettled([
       apiGetSessions(params),
-      apiGetHeadCoachGroups(),
+      apiGetGroupsForSelect(),
     ]).then(([sRes, gRes]) => {
-      setSessions(sRes?.data || []);
-      setGroups(gRes?.data || []);
-    }).catch(() => {}).finally(() => setLoading(false));
+      if (sRes.status === 'fulfilled') setSessions(sRes.value?.data || []);
+      if (gRes.status === 'fulfilled') setGroups(gRes.value?.data || []);
+    }).finally(() => setLoading(false));
   }, [groupFilter]);
 
   React.useEffect(() => {

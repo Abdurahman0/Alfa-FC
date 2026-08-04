@@ -11,6 +11,28 @@ export async function apiGetGroups(params = {}) {
   return apiFetch(`/groups${q ? '?' + q : ''}`);
 }
 
+// Role-resilient group list for selects/panels. Admins, head coaches and
+// coaches each see groups through a different endpoint (the others 403);
+// query all three, ignore failures, merge unique by id — so group dropdowns
+// are never empty because of the caller's role.
+export async function apiGetGroupsForSelect(params = {}) {
+  const results = await Promise.allSettled([
+    apiGetGroups({ page_size: 100, ...params }),
+    apiFetch('/head-coach/groups'),
+    apiFetch('/coach/groups'),
+  ]);
+  const byId = new Map();
+  for (const r of results) {
+    if (r.status !== 'fulfilled') continue;
+    const list = r.value?.data;
+    if (!Array.isArray(list)) continue;
+    for (const g of list) {
+      if (g && g.id != null && !byId.has(g.id)) byId.set(g.id, g);
+    }
+  }
+  return { data: [...byId.values()] };
+}
+
 export async function apiGetGroup(id) {
   return apiFetch(`/groups/${id}`);
 }

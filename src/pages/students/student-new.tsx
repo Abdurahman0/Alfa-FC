@@ -4,7 +4,7 @@ import { Icon } from '@/shared/ui/icons';
 import { DateInput, DateTimeInput } from '@/shared/ui/date-picker';
 import {
   apiGetStudents, apiGetStudentFullInfo, apiGetStudentTransactions, apiGetStudentGateLogs,
-  apiGetGroups, apiCreateStudent, apiDownloadStudentsComprehensiveExport,
+  apiGetGroupsForSelect, apiGetGroups, apiCreateStudent, apiDownloadStudentsComprehensiveExport,
   apiGetStudentAttendanceReport, apiUpdateStudent,
   apiDeleteStudent, apiDeleteStudentsBulk, apiHardDeleteStudent,
   apiUploadStudentPhoto, apiUploadStudentPassport, apiUploadStudentExtraFile,
@@ -50,7 +50,7 @@ export function StudentNew({ onBack, onCreated, onViewContract }) {
   };
 
   React.useEffect(() => {
-    apiGetGroups({ page_size: 100 }).then(res => setGroups(res?.data || [])).catch(() => {});
+    apiGetGroupsForSelect().then(res => setGroups(res?.data || [])).catch(() => {});
   }, []);
 
   async function handleSubmit() {

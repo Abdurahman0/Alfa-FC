@@ -14,7 +14,7 @@ import {
   apiPatchContractDates,
   apiPatchContractStatus,
   apiGetGateLogs,
-  apiGetGroups,
+  apiGetGroupsForSelect, apiGetGroups,
   apiGetUsers,
   apiCreateUser,
   apiUpdateUser,
@@ -121,7 +121,7 @@ export function WaitingListScreen({ onToast } = {}) {
   }
 
   React.useEffect(() => {
-    apiGetGroups({ page_size: 100 }).then(r => setGroups(r?.data || [])).catch(() => {});
+    apiGetGroupsForSelect().then(r => setGroups(r?.data || [])).catch(() => {});
   }, []);
 
   React.useEffect(() => { loadList(); }, [groupFilter, birthYearFilter, page]);

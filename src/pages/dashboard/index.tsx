@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React from 'react';
 import { Icon } from '@/shared/ui/icons';
-import { apiGetDashboard, apiGetGroups, apiGetSessions } from '@/shared/api';
+import { apiGetDashboard, apiGetGroupsForSelect, apiGetGroups, apiGetSessions } from '@/shared/api';
 import { useT } from '@/shared/i18n/lang';
 import { fmtDate } from '@/shared/lib/format';
 
@@ -24,7 +24,7 @@ export function Dashboard({ role, onNav, onOpenGroup }) {
     Promise.all([
       apiGetDashboard(),
       apiGetSessions({ date: todayIso }),
-      apiGetGroups({ page_size: 50 }),
+      apiGetGroupsForSelect(),
     ]).then(([dashRes, sessRes, grpRes]) => {
       setSummary(dashRes?.data || null);
       setTodaySessions(sessRes?.data || []);
