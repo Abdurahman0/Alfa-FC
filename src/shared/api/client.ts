@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { http } from './http';
 import { tokenStore } from './token';
+import { translateApiError } from '../i18n/api-errors';
 
 // Legacy helpers kept for callers that read the URL directly
 export const BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'https://api.alpha.cognilabs.org').replace(/\/$/, '');
@@ -122,6 +123,8 @@ export async function apiFetch(path, options = {}) {
       return null;
     }
     const detail = error.response?.data?.detail;
-    throw new Error(detail || `Xatolik: ${error.response?.status ?? error.message}`);
+    // FastAPI validation errors come as an array of {loc, msg, type}
+    if (Array.isArray(detail)) throw new Error(translateApiError('__validation__'));
+    throw new Error(translateApiError(detail || (error.response?.status ? `Xatolik: ${error.response.status}` : error.message)));
   }
 }
