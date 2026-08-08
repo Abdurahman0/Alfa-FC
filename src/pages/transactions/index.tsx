@@ -545,9 +545,10 @@ export function TransactionsScreen({ onToast } = {}) {
                     )}
                     {!manualContractLoading && manualContractMatches.map((contract) => {
                       const customerName = contract.custom_fields?.customer?.full_name || contract.customer_full_name || '';
-                      const studentName = contract.student
-                        ? `${contract.student.first_name || ''} ${contract.student.last_name || ''}`.trim()
-                        : (contract.student_name || contract.full_name || '');
+                      const studentName = contract.custom_fields?.student?.full_name
+                        || (contract.student
+                          ? `${contract.student.first_name || ''} ${contract.student.last_name || ''}`.trim()
+                          : (contract.student_name || contract.full_name || ''));
                       const displayName = studentName || customerName || `${t('student_num_prefix')}${contract.student_id || '-'}`;
                       return (
                         <button

@@ -16,17 +16,28 @@ import { avatarColor } from '@/shared/lib/avatar';
 import { fmtDate } from '@/shared/lib/format';
 import { calcAge, fullName, normalizeStatus } from './lib';
 
+// Filters survive navigating into a student profile and back (the list
+// unmounts on route change, so plain state would reset them).
+const FILTERS_KEY = 'alpha_students_filters';
+function loadSavedFilters() {
+  try { return JSON.parse(sessionStorage.getItem(FILTERS_KEY)) || {}; } catch { return {}; }
+}
+
 export function StudentsList({ onOpen, onNew, onToast }) {
   const I = Icon;
   const { t } = useT();
   const [students, setStudents] = React.useState([]);
   const [groups, setGroups] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
-  const [q, setQ] = React.useState('');
-  const [status, setStatus] = React.useState('all');
-  const [groupId, setGroupId] = React.useState('');
+  const [q, setQ] = React.useState(() => loadSavedFilters().q || '');
+  const [status, setStatus] = React.useState(() => loadSavedFilters().status || 'all');
+  const [groupId, setGroupId] = React.useState(() => loadSavedFilters().groupId || '');
   const [selected, setSelected] = React.useState([]);
-  const [page, setPage] = React.useState(1);
+  const [page, setPage] = React.useState(() => loadSavedFilters().page || 1);
+
+  React.useEffect(() => {
+    try { sessionStorage.setItem(FILTERS_KEY, JSON.stringify({ q, status, groupId, page })); } catch { /* private mode */ }
+  }, [q, status, groupId, page]);
   const [totalPages, setTotalPages] = React.useState(1);
   const [totalCount, setTotalCount] = React.useState(0);
   const [bulkDeleting, setBulkDeleting] = React.useState(false);
