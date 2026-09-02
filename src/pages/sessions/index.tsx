@@ -1,11 +1,11 @@
 // @ts-nocheck
 import React from 'react';
 import { Icon } from '@/shared/ui/icons';
-import { DateInput, DateTimeInput } from '@/shared/ui/date-picker';
+import { DateInput, DateTimeInput, MultiDateInput } from '@/shared/ui/date-picker';
 import {
   apiGetGroups, apiGetGroupsForSelect, apiGetHeadCoachGroups, apiGetGroup, apiGetGroupStudents, apiCreateGroup, apiUpdateGroup, apiDeleteGroup, apiDeleteGroupsBulk,
   apiGetSessions, apiGetSessionDetails, apiGetCoachSessionDetails, apiCreateSession,
-  apiUpdateSession, apiDeleteSession, apiCreateHeadCoachSessionsBulk,
+  apiUpdateSession, apiDeleteSession,
   apiGetCoaches, apiDownloadGroupStudentsExport, apiDownloadCoachGroupPerformanceTableExport,
   apiMarkAttendance, apiMarkBulkAttendance, apiAddPerformanceTableMatch,
   apiSaveCoachGroupPerformanceTable, apiDeleteCoachPerformanceTableColumn, apiUpdateCoachPerformanceTableColumn,
@@ -46,13 +46,9 @@ export function SessionsScreen({ onMark }) {
   const [menuPos, setMenuPos] = React.useState({ x: 0, y: 0 });
   const [editingSession, setEditingSession] = React.useState(null);
   const [editForm, setEditForm] = React.useState({ group_id: '', session_date: '', topic: '', start_time: '', end_time: '', station: '', description: '' });
-  const [showBulkCreate, setShowBulkCreate] = React.useState(false);
-  const [bulkDays, setBulkDays] = React.useState([]);
-  const [bulkForm, setBulkForm] = React.useState({ group_id: '', from_date: todayIso, to_date: todayIso, topic: '', start_time: '10:00', end_time: '11:00', station: '' });
-  const [savingBulk, setSavingBulk] = React.useState(false);
   const [newSession, setNewSession] = React.useState({
     group_id: '',
-    session_date: todayIso,
+    session_dates: [todayIso],
     topic: '',
     start_time: '10:00',
     end_time: '11:00',
@@ -184,55 +180,28 @@ export function SessionsScreen({ onMark }) {
     }
   }
 
-  async function handleBulkCreate() {
-    if (!bulkForm.group_id || !bulkForm.from_date || !bulkForm.to_date || !bulkForm.topic.trim() || bulkDays.length === 0) {
-      alert(t('toast_required'));
-      return;
-    }
-    setSavingBulk(true);
-    try {
-      await apiCreateHeadCoachSessionsBulk({
-        group_id: Number(bulkForm.group_id),
-        from_date: bulkForm.from_date,
-        to_date: bulkForm.to_date,
-        days_of_week: bulkDays.map(Number),
-        topic: bulkForm.topic.trim(),
-        start_time: bulkForm.start_time,
-        end_time: bulkForm.end_time,
-        station: bulkForm.station.trim() || undefined,
-      });
-      setShowBulkCreate(false);
-      setBulkDays([]);
-      setBulkForm(p => ({ ...p, topic: '', station: '' }));
-      const params = {};
-      if (groupFilter) params.group_id = groupFilter;
-      const sRes = await apiGetSessions(params);
-      setSessions(sRes?.data || []);
-    } catch (e) {
-      alert(e.message);
-    } finally {
-      setSavingBulk(false);
-    }
-  }
-
   async function handleCreateSession() {
-    if (!newSession.group_id || !newSession.topic.trim() || !newSession.session_date) {
+    if (!newSession.group_id || !newSession.topic.trim() || newSession.session_dates.length === 0) {
       alert(t('toast_required'));
       return;
     }
     setSaving(true);
     try {
-      await apiCreateSession({
+      const base = {
         group_id: Number(newSession.group_id),
-        session_date: newSession.session_date,
         topic: newSession.topic.trim(),
         start_time: newSession.start_time,
         end_time: newSession.end_time,
         station: newSession.station.trim() || undefined,
         description: newSession.description.trim() || undefined,
-      });
+      };
+      // One session per picked date. Sequential so a mid-list failure surfaces which date broke.
+      const dates = [...newSession.session_dates].sort();
+      for (const d of dates) {
+        await apiCreateSession({ ...base, session_date: d });
+      }
       setShowCreate(false);
-      setNewSession((p) => ({ ...p, topic: '', station: '', description: '' }));
+      setNewSession((p) => ({ ...p, topic: '', station: '', description: '', session_dates: [todayIso] }));
       const [sRes] = await Promise.all([apiGetSessions()]);
       setSessions(sRes?.data || []);
     } catch (e) {
@@ -255,7 +224,6 @@ export function SessionsScreen({ onMark }) {
               <button className={'btn' + (filter === 'week' ? ' primary' : '')} onClick={() => setFilter('week')}>
                 <I.Calendar size={15}/> {t('filter_week')}
               </button>
-              <button className="btn ghost" onClick={() => setShowBulkCreate(true)}><I.Plus size={15}/> {t('sessions_tab_bulk')}</button>
               <button className="btn primary" onClick={() => setShowCreate(true)}><I.Plus size={15}/> {t('sessions_new')}</button>
             </>
           )}
@@ -428,9 +396,21 @@ export function SessionsScreen({ onMark }) {
               <label>{t('sessions_group')} <span className="req">*</span></label>
               <SearchableGroupSelect value={newSession.group_id} onChange={v => setNewSession(p => ({ ...p, group_id: v }))} groups={groups} placeholder={t('groups_coach_none')} />
             </div>
-            <div className="field">
-              <label>{t('sessions_date')} <span className="req">*</span></label>
-              <DateInput value={newSession.session_date} onChange={v => setNewSession(p => ({ ...p, session_date: v }))} />
+            <div className="field col-span-2">
+              <label>{t('sessions_dates')} <span className="req">*</span></label>
+              <MultiDateInput values={newSession.session_dates} placeholder={t('sessions_add_date')}
+                onChange={next => setNewSession(p => ({ ...p, session_dates: next }))} />
+              {newSession.session_dates.length > 0 && (
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+                  {[...newSession.session_dates].sort().map(d => (
+                    <button key={d} type="button"
+                      onClick={() => setNewSession(p => ({ ...p, session_dates: p.session_dates.filter(x => x !== d) }))}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 8, border: '1px solid var(--accent)', background: 'var(--selected)', color: 'var(--accent)', fontWeight: 600, cursor: 'pointer', fontSize: 12.5 }}>
+                      {fmtDate(d)} <I.X size={12}/>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="field">
               <label>{t('sessions_topic')} <span className="req">*</span></label>
@@ -497,61 +477,6 @@ export function SessionsScreen({ onMark }) {
         </Modal>
       )}
 
-      {showBulkCreate && (
-        <Modal
-          onClose={() => setShowBulkCreate(false)}
-          title={t('bulk_create_title')}
-          footer={<>
-            <button className="btn ghost" onClick={() => setShowBulkCreate(false)}>{t('cancel')}</button>
-            <button className="btn primary" onClick={handleBulkCreate} disabled={savingBulk}><I.Check size={14}/> {savingBulk ? t('creating') : t('create')}</button>
-          </>}
-        >
-          <div className="grid-2" style={{ gap: 12 }}>
-            <div className="field col-span-2">
-              <label>{t('field_group')} <span className="req">*</span></label>
-              <SearchableGroupSelect value={bulkForm.group_id} onChange={v => setBulkForm(p => ({ ...p, group_id: v }))} groups={groups} placeholder="Tanlang" />
-            </div>
-            <div className="field">
-              <label>{t('bulk_from_date')} <span className="req">*</span></label>
-              <DateInput value={bulkForm.from_date} onChange={v => setBulkForm(p => ({ ...p, from_date: v }))} />
-            </div>
-            <div className="field">
-              <label>{t('bulk_to_date')} <span className="req">*</span></label>
-              <DateInput value={bulkForm.to_date} onChange={v => setBulkForm(p => ({ ...p, to_date: v }))} />
-            </div>
-            <div className="field col-span-2">
-              <label>{t('bulk_weekdays')} <span className="req">*</span></label>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {[['1','Du'],['2','Se'],['3','Ch'],['4','Pa'],['5','Ju'],['6','Sh'],['0','Ya']].map(([val, label]) => {
-                  const sel = bulkDays.includes(val);
-                  return (
-                    <button key={val} type="button" onClick={() => setBulkDays(prev => sel ? prev.filter(d => d !== val) : [...prev, val])}
-                      style={{ padding: '5px 12px', borderRadius: 8, border: '1px solid ' + (sel ? 'var(--accent)' : 'var(--border)'), background: sel ? 'var(--selected)' : 'var(--surface)', color: sel ? 'var(--accent)' : 'var(--text)', fontWeight: sel ? 700 : 500, cursor: 'pointer', fontSize: 13 }}>
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="field col-span-2">
-              <label>{t('sessions_topic')} <span className="req">*</span></label>
-              <input value={bulkForm.topic} onChange={e => setBulkForm(p => ({ ...p, topic: e.target.value }))} placeholder="Masalan: Tezlik mashqi" />
-            </div>
-            <div className="field">
-              <label>{t('sessions_start')}</label>
-              <input type="time" value={bulkForm.start_time} onChange={e => setBulkForm(p => ({ ...p, start_time: e.target.value }))} />
-            </div>
-            <div className="field">
-              <label>{t('sessions_end')}</label>
-              <input type="time" value={bulkForm.end_time} onChange={e => setBulkForm(p => ({ ...p, end_time: e.target.value }))} />
-            </div>
-            <div className="field col-span-2">
-              <label>{t('field_pitch')}</label>
-              <input value={bulkForm.station} onChange={e => setBulkForm(p => ({ ...p, station: e.target.value }))} placeholder="Maydon 1" />
-            </div>
-          </div>
-        </Modal>
-      )}
       </div>
       )}
     </div>

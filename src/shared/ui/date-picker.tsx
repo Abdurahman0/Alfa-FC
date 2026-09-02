@@ -21,7 +21,7 @@ function parseTime(v) {
   return m ? `${m[1]}:${m[2]}` : '';
 }
 
-function CalendarPop({ anchorRef, value, onPick, lang, t, withTime, time, onTimeChange, onClose }) {
+function CalendarPop({ anchorRef, value, onPick, lang, t, withTime, time, onTimeChange, onClose, multi, selectedSet }) {
   const popRef = React.useRef(null);
   const today = new Date();
   const todayISO = toISO(today.getFullYear(), today.getMonth(), today.getDate());
@@ -101,10 +101,11 @@ function CalendarPop({ anchorRef, value, onPick, lang, t, withTime, time, onTime
           <div className="cal-grid">
             {cells.map((c, i) => {
               const iso = toISO(c.y, c.mo, c.d);
-              const cls = 'cal-cell' + (c.out ? ' muted' : '') + (iso === todayISO ? ' today' : '') + (value && iso === value.slice(0, 10) ? ' selected' : '');
+              const isSel = multi ? selectedSet?.has(iso) : (value && iso === value.slice(0, 10));
+              const cls = 'cal-cell' + (c.out ? ' muted' : '') + (iso === todayISO ? ' today' : '') + (isSel ? ' selected' : '');
               return (
                 <button key={i} type="button" className={cls}
-                  onClick={() => { if (c.out) setView({ y: c.y, mo: c.mo }); onPick(iso, !withTime); }}>
+                  onClick={() => { if (c.out) setView({ y: c.y, mo: c.mo }); onPick(iso, multi ? false : !withTime); }}>
                   {c.d}
                 </button>
               );
@@ -143,12 +144,14 @@ function CalendarPop({ anchorRef, value, onPick, lang, t, withTime, time, onTime
       )}
 
       <div className="cal-foot">
-        <button type="button" className="btn ghost sm" onClick={() => { setView({ y: today.getFullYear(), mo: today.getMonth() }); setMode('days'); onPick(todayISO, !withTime); }}>
+        <button type="button" className="btn ghost sm" onClick={() => { setView({ y: today.getFullYear(), mo: today.getMonth() }); setMode('days'); onPick(todayISO, multi ? false : !withTime); }}>
           {t('cal_today')}
         </button>
-        {withTime
+        {multi
           ? <button type="button" className="btn primary sm" onClick={onClose}>OK</button>
-          : (value ? <button type="button" className="btn ghost sm" onClick={() => onPick('', true)}>{t('cal_clear')}</button> : null)}
+          : withTime
+            ? <button type="button" className="btn primary sm" onClick={onClose}>OK</button>
+            : (value ? <button type="button" className="btn ghost sm" onClick={() => onPick('', true)}>{t('cal_clear')}</button> : null)}
       </div>
     </div>,
     document.body
@@ -174,6 +177,37 @@ export function DateInput({ value, onChange, placeholder, style }) {
       {open && (
         <CalendarPop anchorRef={btnRef} value={value || ''} lang={lang} t={t}
           onPick={(iso, close) => { onChange(iso); if (close) setOpen(false); }}
+          onClose={() => setOpen(false)}/>
+      )}
+    </>
+  );
+}
+
+/** Multi-select calendar. values: string[] of 'YYYY-MM-DD'. onChange(next[]). Click a day to toggle it. */
+export function MultiDateInput({ values, onChange, placeholder, style }) {
+  const { t, lang } = useT();
+  const [open, setOpen] = React.useState(false);
+  const btnRef = React.useRef(null);
+  const list = values || [];
+  const set = React.useMemo(() => new Set(list), [list]);
+  const label = list.length === 0
+    ? (placeholder || t('cal_pick'))
+    : list.length === 1
+      ? fmtDate(list[0])
+      : `${list.length} ${t('sessions_dates_selected')}`;
+  function toggle(iso) {
+    if (!iso) return;
+    onChange(set.has(iso) ? list.filter(v => v !== iso) : [...list, iso]);
+  }
+  return (
+    <>
+      <button type="button" ref={btnRef} className="date-input" style={style} onClick={() => setOpen(o => !o)}>
+        <Icon.Calendar size={15} color="var(--muted)"/>
+        <span className={'date-input-value' + (list.length ? '' : ' ph')}>{label}</span>
+      </button>
+      {open && (
+        <CalendarPop anchorRef={btnRef} value="" lang={lang} t={t} multi selectedSet={set}
+          onPick={(iso, close) => { if (close) { setOpen(false); return; } toggle(iso); }}
           onClose={() => setOpen(false)}/>
       )}
     </>
