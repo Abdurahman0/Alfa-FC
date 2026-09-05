@@ -8,7 +8,7 @@ import {
   apiDeleteStudent, apiDeleteStudentsBulk, apiHardDeleteStudent,
   apiUploadStudentPhoto, apiUploadStudentPassport, apiUploadStudentExtraFile,
   apiContractPdfUrl, apiGetContractPdf, apiDownloadStudentFile,
-  apiChangeStudentGroup,
+  apiChangeStudentGroup, apiGetContracts, apiGetStudent,
 } from '@/shared/api';
 import { SearchableGroupSelect, SearchableSelect } from '@/shared/ui/controls';
 import { useT } from '@/shared/i18n/lang';
@@ -43,6 +43,8 @@ export function StudentsList({ onOpen, onNew, onToast }) {
   const [bulkDeleting, setBulkDeleting] = React.useState(false);
   const [openMenuStudentId, setOpenMenuStudentId] = React.useState(null);
   const [menuPos, setMenuPos] = React.useState({ x: 0, y: 0 });
+  // student_id -> contract_number. Source of truth for the row label + contract-number search.
+  const [contractByStudent, setContractByStudent] = React.useState({});
   const PAGE_SIZE = 10;
 
   async function loadStudents(overrides = {}) {
@@ -54,9 +56,36 @@ export function StudentsList({ onOpen, onNew, onToast }) {
       if (groupId) params.group_id = groupId;
       Object.assign(params, overrides);
       const res = await apiGetStudents(params);
-      setStudents(res?.data || []);
-      setTotalPages(res?.meta?.total_pages || 1);
-      setTotalCount(res?.meta?.total || 0);
+      let data = res?.data || [];
+      let totalPages = res?.meta?.total_pages || 1;
+      let totalCount = res?.meta?.total || 0;
+
+      // Contract-number search: the server search may not cover contract_number,
+      // so on page 1 we resolve the query against the contract map and pull in
+      // any matching students the server didn't already return.
+      const effPage = overrides.page ?? page;
+      const query = String(overrides.search ?? q ?? '').trim().toLowerCase();
+      if (query && effPage === 1) {
+        const have = new Set(data.map(s => s.id));
+        const matchIds = Object.keys(contractByStudent)
+          .filter(sid => String(contractByStudent[sid]).toLowerCase().includes(query))
+          .map(Number)
+          .filter(id => !have.has(id))
+          .slice(0, 20);
+        if (matchIds.length) {
+          const extra = (await Promise.all(
+            matchIds.map(id => apiGetStudent(id).then(r => r?.data).catch(() => null))
+          )).filter(Boolean);
+          if (extra.length) {
+            data = [...extra, ...data];
+            totalCount = totalCount + extra.length;
+          }
+        }
+      }
+
+      setStudents(data);
+      setTotalPages(totalPages);
+      setTotalCount(totalCount);
     } catch {} finally {
       setLoading(false);
     }
@@ -64,6 +93,34 @@ export function StudentsList({ onOpen, onNew, onToast }) {
 
   React.useEffect(() => {
     apiGetGroupsForSelect().then(res => setGroups(res?.data || [])).catch(() => {});
+  }, []);
+
+  // Pull every contract once and index by student. A student may have several
+  // contracts (renewals) — keep the newest (highest id) as the current one.
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const newest = {}; // student_id -> { number, id }
+      try {
+        let p = 1, totalPages = 1;
+        do {
+          const res = await apiGetContracts({ page: p, page_size: 200 });
+          (res?.data || []).forEach(c => {
+            const sid = c.student_id;
+            if (sid == null || !c.contract_number) return;
+            const prev = newest[sid];
+            if (!prev || Number(c.id) > Number(prev.id)) newest[sid] = { number: c.contract_number, id: c.id };
+          });
+          totalPages = res?.meta?.total_pages || 1;
+          p++;
+        } while (p <= totalPages && p <= 40);
+      } catch { /* leave map empty; rows fall back to #id */ }
+      if (cancelled) return;
+      const map = {};
+      Object.entries(newest).forEach(([sid, v]) => { map[sid] = v.number; });
+      setContractByStudent(map);
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   React.useEffect(() => {
@@ -200,6 +257,7 @@ export function StudentsList({ onOpen, onNew, onToast }) {
                 const name = fullName(s);
                 const age = calcAge(s.date_of_birth);
                 const grpName = groupMap[s.group_id] || '—';
+                const contractNo = contractByStudent[s.id] || s.contract_number || '';
                 return (
                   <tr key={s.id} className={selected.includes(s.id) ? 'selected' : undefined} onClick={() => onOpen(s.id)}>
                     <td onClick={e => e.stopPropagation()}>
@@ -210,7 +268,7 @@ export function StudentsList({ onOpen, onNew, onToast }) {
                         <div className="avatar sm" style={{ background: avatarColor(s.id) }}>{s.first_name[0]}{s.last_name[0]}</div>
                         <div className="meta">
                           <span className="name">{name}</span>
-                          <span className="sub">#{String(s.id).padStart(4, '0')} · {age} {t('students_years')}</span>
+                          <span className="sub">{contractNo || '#' + String(s.id).padStart(4, '0')} · {age} {t('students_years')}</span>
                         </div>
                       </div>
                     </td>
